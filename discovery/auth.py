@@ -18,7 +18,7 @@ class Auth(ABC):
 
 class IAM(Auth):
 
-    def __init__(self, conf_file, session_filename="auth_session.json"):
+    def __init__(self, conf_file, session_filename="iam_auth.session.json"):
         self.endpoint = None
         self.client_id = None
         self.client_secret = None
