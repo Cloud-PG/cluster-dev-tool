@@ -23,6 +23,8 @@ class Auth(ABC):
 
 class IAM(Auth):
 
+    """Object to manage IAM authentication."""
+
     def __init__(self, conf_file=None):
         self.endpoint = None
         self.client_id = None
@@ -37,6 +39,7 @@ class IAM(Auth):
             self.load_config_file()
 
     def update_config_file(self):
+        """Update the IAM file with the current configuration."""
         with open(self.conf_file, "w") as file_:
             json.dump({
                 'cfg': {
@@ -52,6 +55,7 @@ class IAM(Auth):
         return self
 
     def load_config_file(self, config_file=None):
+        """Load a configuration from a IAM json file."""
         if config_file:
             cur_file = config_file
         else:
@@ -84,6 +88,7 @@ class IAM(Auth):
                  colored("[Load session](✓)", "green"))
 
     def __get_token(self):
+        """Request for a IAM token."""
         show(colored("[IAM]", "magenta"),
              colored("[Insert Password]:", "cyan"))
         passwd = getpass("")
@@ -106,6 +111,7 @@ class IAM(Auth):
         return self
 
     def token(self):
+        """Get a valid IAM token."""
         show(colored("[IAM]", "magenta"),
              colored("[GET token]", "yellow"), end="\r")
         if self.session.get('access_token'):
