@@ -1,8 +1,10 @@
 import configparser
-from getpass import getpass
 from abc import ABC, abstractmethod
+from getpass import getpass
 
 import requests
+
+from .auth import IAM
 
 
 class Commander(object):
