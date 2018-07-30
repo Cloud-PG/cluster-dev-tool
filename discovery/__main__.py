@@ -14,6 +14,10 @@ def print_list(list_):
     )
 
 
+def print_json_data(data):
+    return "[\n{}\n]".format(json.dumps(data, indent=2))
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog='discovery', argument_default=argparse.SUPPRESS)
@@ -35,7 +39,7 @@ def main():
         'infrastructure', help='explore inventory infrastructure')
     parser_infrastructure.set_defaults(cmd="infrastructure")
     parser_infrastructure.add_argument(
-        'infrastructure_command', metavar="command", choices=['ls'], default="ls",
+        'infrastructure_command', metavar="command", choices=['ls', 'show'], default="ls",
         type=str, help='Command to execute with infrastructure resources. Possible values:["ls"]')
 
     args, _ = parser.parse_known_args()
@@ -47,23 +51,22 @@ def main():
     if args.cmd == "commander":
         if args.commander_command == 'ls':
             show(
-                    colored("[Discovery]", "magenta"),
-                    colored("[commander]", "cyan", attrs=['bold']),
-                    colored("[ls]", "green"),
-                    colored(print_list(inventory['commanders'].keys()), "blue")
-                )
+                colored("[Discovery]", "magenta"),
+                colored("[commander]", "cyan", attrs=['bold']),
+                colored("[ls]", "green"),
+                colored(print_list(inventory['commanders'].keys()), "blue")
+            )
     elif args.cmd == "infrastructure":
         if args.infrastructure_command == 'ls':
             show(
-                    colored("[Discovery]", "magenta"),
-                    colored("[infrastructure]", "cyan", attrs=['bold']),
-                    colored("[ls]", "green"),
-                    colored(print_list(
+                colored("[Discovery]", "magenta"),
+                colored("[infrastructure]", "cyan", attrs=['bold']),
+                colored("[ls]", "green"),
+                colored(print_list(
                         inventory['infrastructures'].keys()), "blue")
-                )
+            )
     else:
         parser.print_help()
-
 
 
 if __name__ == "__main__":
