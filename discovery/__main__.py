@@ -3,19 +3,24 @@ import json
 
 from termcolor import colored
 
-from .utils import show
+from .commander import CommanderIM
+from .utils import print_json_data, print_list, show
 
 
-def print_list(list_):
-    return "[\n{}\n]".format(
-        "\n".join(
-            ["  - {}".format(elm) for elm in list_]
-        )
+def get_context(infrastructure, commanders):
+    show(
+        colored("[Discovery]", "magenta"),
+        colored("[{}]".format(infrastructure['commander']), "white"),
+        colored("[state]", "green"),
+        colored("[get context]", "yellow", attrs=['bold'])
     )
-
-
-def print_json_data(data):
-    return "[\n{}\n]".format(json.dumps(data, indent=2))
+    if infrastructure['commander'] in commanders:
+        commander_cfg = commanders[infrastructure['commander']]
+        if commander_cfg['type'] == 'IM':
+            context = CommanderIM(commander_cfg, infrastructure['commander'], infrastructure['id'])
+            return context
+    else:
+        raise Exception("Commander '{}' not available in the inventory...".format(infrastructure['commander'])) 
 
 
 def command_show(sub_command, target, dict_):
@@ -64,8 +69,8 @@ def main():
     parser_commander_show = sub_parser_commander.add_parser(
         'show', help='Get info about commanders')
     parser_commander_show.add_argument(
-        'parser_commander_show', metavar="target",
-        type=str, help='Target of show command for commanders. Possible values: ["all"]')
+        'parser_commander_show_target', metavar="target",
+        type=str, help='Target of show command for commanders. Possible values: ["all", infrastructure_id]')
 
     # sub command [infrastructure]
     parser_infrastructure = subparsers.add_parser(
@@ -75,8 +80,15 @@ def main():
     parser_infrastructure_show = sub_parser_infrastructure.add_parser(
         'show', help='Get info about infrastructures')
     parser_infrastructure_show.add_argument(
-        'parser_infrastructure_show', metavar="target",
-        type=str, help='Target of show command for infrastructures. Possible values: ["all"]')
+        'parser_infrastructure_show_target', metavar="target",
+        type=str, help='Target of show command for infrastructures. Possible values: ["all", infrastructure_id]')
+    
+    # sub command [state]
+    parser_state = subparsers.add_parser(
+        'state', help='explore state of infrastructures')
+    parser_state.add_argument(
+        'parser_state_target', metavar="target",
+        type=str, help='Target of show command for state.')
 
     args, _ = parser.parse_known_args()
 
@@ -88,12 +100,16 @@ def main():
     # RUN
     if args.sub_command == "commander":
         if args.sub_command_commander == 'show':
-            if not command_show(args.sub_command, args.parser_commander_show, inventory['commanders']):
+            if not command_show(args.sub_command, args.parser_commander_show_target, inventory['commanders']):
                 parser.print_help()
     elif args.sub_command == "infrastructure":
         if args.sub_command_infrastructure == 'show':
-            if not command_show(args.sub_command, args.parser_infrastructure_show, inventory['infrastructures']):
+            if not command_show(args.sub_command, args.parser_infrastructure_show_target, inventory['infrastructures']):
                 parser.print_help()
+    elif args.sub_command == "state":
+        if args.parser_state_target in inventory['infrastructures']:
+            ctx = get_context(inventory['infrastructures'][args.parser_state_target], inventory['commanders'])
+            ctx.state()
     else:
         parser.print_help()
 

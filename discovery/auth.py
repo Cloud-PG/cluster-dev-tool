@@ -5,7 +5,6 @@ from getpass import getpass
 from time import time
 
 import jwt
-
 import requests
 from termcolor import colored
 
@@ -35,7 +34,7 @@ class IAM(Auth):
         self.session = {}
         self.conf_file = conf_file
 
-        if conf_file:
+        if self.conf_file:
             self.load_config_file()
 
     def update_config_file(self):
@@ -61,7 +60,7 @@ class IAM(Auth):
         else:
             cur_file = self.conf_file
 
-        show(colored("[IAM]", "magenta"), colored(
+        show(colored("[Discovery][IAM]", "magenta"), colored(
             "[Load Config]", "yellow"), end='\r')
         with open(cur_file) as file_:
             config = json.load(file_)
@@ -69,7 +68,7 @@ class IAM(Auth):
         for key, value in config['cfg'].items():
             if hasattr(self, key):
                 show(
-                    colored("[IAM]", "magenta"),
+                    colored("[Discovery][IAM]", "magenta"),
                     colored("[Load Config]", "yellow"),
                     colored("[Set '{}'\t-> '{}']".format(key, value), "yellow"),
                     end="\r"
@@ -79,20 +78,20 @@ class IAM(Auth):
                 raise Exception(
                     "Config attribute '{}' is not valid!".format(key))
 
-        show(colored("[IAM]", "magenta"), colored(
+        show(colored("[Discovery][IAM]", "magenta"), colored(
             "[Load Config](✓)", "green"), clean=True)
 
         if config.get('session'):
             self.session = config['session']
-            show(colored("[IAM]", "magenta"),
+            show(colored("[Discovery][IAM]", "magenta"),
                  colored("[Load session](✓)", "green"))
 
     def __get_token(self):
         """Request for a IAM token."""
-        show(colored("[IAM]", "magenta"),
+        show(colored("[Discovery][IAM]", "magenta"),
              colored("[Insert Password]:", "cyan"))
-        passwd = getpass("")
-        show(colored("[IAM]", "magenta"),
+        passwd = getpass("|->")
+        show(colored("[Discovery][IAM]", "magenta"),
              colored("[Request token]:", "yellow"), end='\r')
         res = requests.post(self.endpoint, data={
             'client_id': self.client_id,
@@ -102,19 +101,22 @@ class IAM(Auth):
             'password': passwd,
             'scope': self.scope
         })
-        show(colored("[IAM]", "magenta"),
+        show(colored("[Discovery][IAM]", "magenta"),
              colored("[Request token](✓)", "green"))
         self.session = res.json()
-        self.update_config_file()
-        show(colored("[IAM]", "magenta"),
+        if self.conf_file:
+            self.update_config_file()
+        show(colored("[Discovery][IAM]", "magenta"),
              colored("[Update file](✓)", "green"))
         return self
 
-    def token(self):
+    def token(self, force=False):
         """Get a valid IAM token."""
-        show(colored("[IAM]", "magenta"),
+        show(colored("[Discovery][IAM]", "magenta"),
              colored("[GET token]", "yellow"), end="\r")
-        if self.session.get('access_token'):
+        if force:
+            self.__get_token()
+        elif self.session.get('access_token'):
             decoded_obj = jwt.decode(self.session.get(
                 'access_token'),
                 algorithms=['RS256'],
@@ -124,8 +126,8 @@ class IAM(Auth):
                 self.__get_token()
         else:
             self.__get_token()
-        show(colored("[IAM]", "magenta"),
-             colored("[Get token](✓)", "green"),
+        show(colored("[Discovery][IAM]", "magenta"),
+             colored("[Get token](✓)[forced={}]".format(force), "green"),
              clean=True
              )
         return self.session.get('access_token')
