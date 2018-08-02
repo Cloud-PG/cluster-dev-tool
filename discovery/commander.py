@@ -163,4 +163,4 @@ class CommanderIM(Commander):
 
         if res.status_code == 400:
             if res.text.find("OIDC auth Token expired") != -1:
-                return self.state(force=True)
+                return self.__property_name(property_, force=True)
