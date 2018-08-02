@@ -1,0 +1,34 @@
+{
+    "commanders": {
+        "my_commander": {
+            "type": "",
+            "server_url": "",
+            "headers": {
+                "authorization": {
+                    "id": "",
+                    "type": "",
+                    "host": "",
+                    "username": "",
+                    "tenant": "",
+                    "auth_version": "",
+                    "service_region": "",
+                    "domain": ""
+                },
+                "auth": {
+                    "id": "",
+                    "type": ""
+                }
+            },
+            "auth": {
+                "type": "IAM",
+                "config_file": "iam.cfg.json"
+            }
+        }
+    },
+    "infrastructures": {
+        "my-cluster": {
+            "commander": "my_commander",
+            "id": "5599932a-9593-11t8-0242zz120004"
+        }
+    }
+}
