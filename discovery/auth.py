@@ -100,7 +100,7 @@ class IAM(Auth):
             colored("[IAM]", "white"),
             colored("[Insert Password]:", "cyan")
         )
-        passwd = getpass("|->")
+        passwd = getpass("[Insert Password]...")
         show(
             colored("[Discovery]", "magenta"),
             colored("[IAM]", "white"),
