@@ -46,7 +46,9 @@ class CommanderIM(Commander):
         return "{}/{}".format(self.__server_url, "/".join(args))
 
     def __unroll_header(self, **headers):
-        return " ; ".join(["{} = {}".format(header, value) for header, value in headers.items()])
+        tmp = " ; ".join(["{} = {}".format(header, value) for header, value in headers.items()])
+        assert len(headers) == len(tmp.split(";")), "You have some ';' in your header values..."
+        return tmp
 
     def __header_compose(self, token):
         """Generate the header for IM.
@@ -86,36 +88,10 @@ class CommanderIM(Commander):
         token = self.__auth.token(force=force)
         self.__header_compose(token)
 
-        print(self.__headers)
-
         res = requests.get(
-            self.__url_compose(self.__in_id, 'state'), 
-            headers=self.__headers,
-            allow_redirects=True,
-            timeout=2
+            self.__url_compose(self.__in_id, 'state'),
+            headers=self.__headers
         )
-
-        # req = requests.Request('GET', self.__url_compose(self.__in_id, 'state'),headers=self.__headers)
-        # prepared = req.prepare()
-        # def pretty_print_POST(req):
-        #     """
-        #     At this point it is completely built and ready
-        #     to be fired; it is "prepared".
-
-        #     However pay attention at the formatting used in
-        #     this function because it is programmed to be pretty
-        #     printed and may differ from the actual request.
-        #     """
-        #     print('{}\n{}\n{}\n\n{}'.format(
-        #         '-----------START-----------',
-        #         req.method + ' ' + req.url,
-        #         '\n'.join('{}: {}'.format(k, v) for k, v in req.headers.items()),
-        #         req.body,
-        #     ))
-        # pretty_print_POST(prepared)
-
-        print(res.status_code, res.text, res.headers)
-        print(res.json())
 
         result = "Response Header:\n{}\nData:\n{}".format(
             print_json_data(dict(res.headers)),
