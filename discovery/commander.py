@@ -58,10 +58,11 @@ class CommanderIM(Commander):
     Ref: http://imdocs.readthedocs.io/en/devel/REST.html
     """
 
-    def __init__(self, config, infrastructure_name, infrastructure_id):
+    def __init__(self, config, target_name, infrastructure_name, infrastructure_id):
         self.__server_url = config['server_url']
         self.__in_id = infrastructure_id
         self.__in_name = infrastructure_name
+        self.__target_name = target_name
         self.__headers = {}
         self.__auth = None
         self.__config = config
@@ -155,6 +156,7 @@ class CommanderIM(Commander):
         show(
             colored("[Discovery]", "magenta"),
             colored("[{}]".format(self.__in_name), "white"),
+            colored("[{}]".format(self.__target_name), "red"),
             colored("[{}]".format(property_), "green"),
             colored("[\n{}\n]".format(result), "blue")
         )

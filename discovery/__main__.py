@@ -7,17 +7,23 @@ from .commander import CommanderIM
 from .utils import print_json_data, print_list, show
 
 
-def get_context(infrastructure, commanders):
+def get_context(target, infrastructure, commanders):
     show(
         colored("[Discovery]", "magenta"),
         colored("[{}]".format(infrastructure['commander']), "white"),
-        colored("[state]", "green"),
+        colored("[{}]".format(target), "red"),
         colored("[get context]", "yellow", attrs=['bold'])
     )
     if infrastructure['commander'] in commanders:
         commander_cfg = commanders[infrastructure['commander']]
         if commander_cfg['type'] == 'IM':
-            context = CommanderIM(commander_cfg, infrastructure['commander'], infrastructure['id'])
+            context = CommanderIM(commander_cfg, target, infrastructure['commander'], infrastructure['id'])
+            show(
+                colored("[Discovery]", "magenta"),
+                colored("[{}]".format(infrastructure['commander']), "white"),
+                colored("[{}]".format(target), "red"),
+                colored("[get context]", "green")
+            )
             return context
     else:
         raise Exception("Commander '{}' not available in the inventory...".format(infrastructure['commander'])) 
@@ -63,7 +69,7 @@ def main():
 
     # sub command [commander]
     parser_commander = subparsers.add_parser(
-        'commander', help='explore inventory commander')
+        'commander', help='Explore inventory commander')
     sub_parser_commander = parser_commander.add_subparsers(
         dest="sub_command_commander")
     parser_commander_show = sub_parser_commander.add_parser(
@@ -74,7 +80,7 @@ def main():
 
     # sub command [infrastructure]
     parser_infrastructure = subparsers.add_parser(
-        'infrastructure', help='explore inventory infrastructure')
+        'infrastructure', help='Explore inventory infrastructure')
     sub_parser_infrastructure = parser_infrastructure.add_subparsers(
         dest="sub_command_infrastructure")
     parser_infrastructure_show = sub_parser_infrastructure.add_parser(
@@ -111,7 +117,7 @@ def main():
         tmp = 'parser_{}_target'.format(args.sub_command)
         cur_target = getattr(args, tmp)
         if cur_target in inventory['infrastructures']:
-            ctx = get_context(inventory['infrastructures'][cur_target], inventory['commanders'])
+            ctx = get_context(cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
             getattr(ctx, args.sub_command)()
     else:
         parser.print_help()

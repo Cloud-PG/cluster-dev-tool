@@ -78,21 +78,35 @@ class IAM(Auth):
                 raise Exception(
                     "Config attribute '{}' is not valid!".format(key))
 
-        show(colored("[Discovery][IAM]", "magenta"), colored(
-            "[Load Config](✓)", "green"), clean=True)
+        show(
+            colored("[Discovery]", "magenta"),
+            colored("[IAM]", "white"),
+            colored("[Load Config](✓)", "green"),
+            clean=True
+        )
 
         if config.get('session'):
             self.session = config['session']
-            show(colored("[Discovery][IAM]", "magenta"),
-                 colored("[Load session](✓)", "green"))
+            show(
+                colored("[Discovery]", "magenta"),
+                colored("[IAM]", "white"),
+                colored("[Load session](✓)", "green")
+            )
 
     def __get_token(self):
         """Request for a IAM token."""
-        show(colored("[Discovery][IAM]", "magenta"),
-             colored("[Insert Password]:", "cyan"))
+        show(
+            colored("[Discovery]", "magenta"),
+            colored("[IAM]", "white"),
+            colored("[Insert Password]:", "cyan")
+        )
         passwd = getpass("|->")
-        show(colored("[Discovery][IAM]", "magenta"),
-             colored("[Request token]:", "yellow"), end='\r')
+        show(
+            colored("[Discovery]", "magenta"),
+            colored("[IAM]", "white"),
+            colored("[Request token]:", "yellow"),
+            end='\r'
+        )
         res = requests.post(self.endpoint, data={
             'client_id': self.client_id,
             'client_secret': self.client_secret,
@@ -101,19 +115,29 @@ class IAM(Auth):
             'password': passwd,
             'scope': self.scope
         })
-        show(colored("[Discovery][IAM]", "magenta"),
-             colored("[Request token](✓)", "green"))
+        show(
+            colored("[Discovery]", "magenta"),
+            colored("[IAM]", "white"),
+            colored("[Request token](✓)", "green")
+        )
         self.session = res.json()
         if self.conf_file:
             self.update_config_file()
-        show(colored("[Discovery][IAM]", "magenta"),
-             colored("[Update file](✓)", "green"))
+        show(
+            colored("[Discovery]", "magenta"),
+            colored("[IAM]", "white"),
+            colored("[Update file](✓)", "green")
+        )
         return self
 
     def token(self, force=False):
         """Get a valid IAM token."""
-        show(colored("[Discovery][IAM]", "magenta"),
-             colored("[GET token]", "yellow"), end="\r")
+        show(
+            colored("[Discovery]", "magenta"),
+            colored("[IAM]", "white"),
+            colored("[GET token]", "yellow"),
+            end="\r"
+        )
         if force:
             self.__get_token()
         elif self.session.get('access_token'):
@@ -126,8 +150,10 @@ class IAM(Auth):
                 self.__get_token()
         else:
             self.__get_token()
-        show(colored("[Discovery][IAM]", "magenta"),
-             colored("[Get token](✓)[forced={}]".format(force), "green"),
-             clean=True
-             )
+        show(
+            colored("[Discovery]", "magenta"),
+            colored("[IAM]", "white"),
+            colored("[Get token](✓)[forced={}]".format(force), "green"),
+            clean=True
+        )
         return self.session.get('access_token')
