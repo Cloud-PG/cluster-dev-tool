@@ -1,5 +1,6 @@
 import configparser
-from abc import ABC, abstractmethod
+import json
+from abc import ABCMeta, abstractmethod
 from getpass import getpass
 
 import requests
@@ -9,14 +10,44 @@ from .auth import IAM
 from .utils import print_json_data, print_list, print_right_shift, show
 
 
-class Commander(object):
+class Commander(metaclass=ABCMeta):
 
     @abstractmethod
     def create(self):
+        """Create a new infrastructure."""
         pass
 
     @abstractmethod
     def destroy(self):
+        """Undeploy all the virtual machines in the infrastructure."""
+        pass
+
+    @abstractmethod
+    def radl(self):
+        """A string with the original specified RADL of the infrastructure."""
+        pass
+
+    @abstractmethod
+    def state(self):
+        """A JSON object with two elements:
+            - state: a string with the aggregated state of the infrastructure.
+            - vm_states: a dict indexed with the VM ID and the value the VM state.
+        """
+        pass
+
+    @abstractmethod
+    def contmsg(self):
+        """A string with the contextualization (log) message."""
+        pass
+
+    @abstractmethod
+    def outputs(self):
+        """In case of TOSCA documents it will return a JSON object with the outputs of the TOSCA document."""
+        pass
+
+    @abstractmethod
+    def data(self):
+        """A string with the JSOMN serialized data of the infrastructure."""
         pass
 
 
@@ -46,8 +77,10 @@ class CommanderIM(Commander):
         return "{}/{}".format(self.__server_url, "/".join(args))
 
     def __unroll_header(self, **headers):
-        tmp = " ; ".join(["{} = {}".format(header, value) for header, value in headers.items()])
-        assert len(headers) == len(tmp.split(";")), "You have some ';' in your header values..."
+        tmp = " ; ".join(["{} = {}".format(header, value)
+                          for header, value in headers.items()])
+        assert len(headers) == len(tmp.split(";")
+                                   ), "You have some ';' in your header values..."
         return tmp
 
     def __header_compose(self, token):
@@ -79,29 +112,50 @@ class CommanderIM(Commander):
     def destroy(self):
         pass
 
-    def state(self, force=False):
+    def radl(self):
+        self.__property_name('radl')
+
+    def state(self):
+        self.__property_name('state')
+
+    def contmsg(self):
+        self.__property_name('contmsg')
+
+    def outputs(self):
+        self.__property_name('outputs')
+
+    def data(self):
+        self.__property_name('data')
+
+    def __property_name(self, property_, force=False):
         """Get the infrastructure state.
 
         API REST:
-            GET: http://imserver.com/infrastructures/<infId>/state
+            GET: http://imserver.com/infrastructures/<infId>/["radl"|"state"|"contmsg"|"outputs"|"data"]
         """
         token = self.__auth.token(force=force)
         self.__header_compose(token)
 
         res = requests.get(
-            self.__url_compose(self.__in_id, 'state'),
+            self.__url_compose(self.__in_id, property_),
             headers=self.__headers
         )
 
+        try:
+            content = res.json()
+        except json.decoder.JSONDecodeError:
+            content = res.text
+
         result = "Response Header:\n{}\nData:\n{}".format(
             print_json_data(dict(res.headers)),
-            print_json_data(res.json())
+            print_json_data(res.json()) if isinstance(
+                content, dict) else content
         )
         result = print_right_shift(result)
         show(
             colored("[Discovery]", "magenta"),
             colored("[{}]".format(self.__in_name), "white"),
-            colored("[state]", "green"),
+            colored("[{}]".format(property_), "green"),
             colored("[\n{}\n]".format(result), "blue")
         )
 
