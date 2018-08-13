@@ -121,6 +121,13 @@ class IAM(Auth):
             colored("[Request token](✓)", "green")
         )
         self.session = res.json()
+        if self.session.get("error", False):
+            show(
+                colored("[Discovery]", "magenta"),
+                colored("[IAM]", "white"),
+                colored("[{}](✗)".format(self.session.get("error_description")), "red")
+            )
+            return self.__get_token()
         if self.conf_file:
             self.update_config_file()
         show(
