@@ -13,7 +13,7 @@ from .utils import print_json_data, print_list, print_right_shift, show
 class Commander(metaclass=ABCMeta):
 
     @abstractmethod
-    def create(self):
+    def create(self, name, data=None):
         """Create a new infrastructure."""
         pass
 
@@ -84,7 +84,7 @@ class CommanderIM(Commander):
                                    ), "You have some ';' in your header values..."
         return tmp
 
-    def __header_compose(self, token):
+    def __header_compose(self, token, additional_headers={}):
         """Generate the header for IM.
 
         Note: Every HTTP request must be companied by the header AUTHORIZATION with 
@@ -107,8 +107,22 @@ class CommanderIM(Commander):
             )
         )
 
-    def create(self):
-        pass
+        self.__headers.update(additional_headers)
+
+    def create(self, name, data=None):
+        token = self.__auth.token()
+        self.__header_compose(token, additional_headers={
+            'Content-type': "text/yaml"
+        })
+
+        with open(data) as yaml_template:
+            res = requests.post(
+                self.__url_compose(),
+                headers=self.__headers,
+                data=yaml_template
+            )
+
+        result = self.__prepare_result(res)
 
     def destroy(self):
         pass
@@ -128,6 +142,20 @@ class CommanderIM(Commander):
     def data(self):
         self.__property_name('data')
 
+    def __prepare_result(self, res):
+        try:
+            content = res.json()
+        except json.decoder.JSONDecodeError:
+            content = res.text
+
+        result = "Response Header:\n{}\nData:\n{}".format(
+            print_json_data(dict(res.headers)),
+            print_json_data(res.json()) if isinstance(
+                content, dict) else content
+        )
+        result = print_right_shift(result)
+        return result
+
     def __property_name(self, property_, force=False):
         """Get the infrastructure state.
 
@@ -142,17 +170,8 @@ class CommanderIM(Commander):
             headers=self.__headers
         )
 
-        try:
-            content = res.json()
-        except json.decoder.JSONDecodeError:
-            content = res.text
+        result = self.__prepare_result(res)
 
-        result = "Response Header:\n{}\nData:\n{}".format(
-            print_json_data(dict(res.headers)),
-            print_json_data(res.json()) if isinstance(
-                content, dict) else content
-        )
-        result = print_right_shift(result)
         show(
             colored("[Discovery]", "magenta"),
             colored("[{}]".format(self.__in_name), "white"),
