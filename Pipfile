@@ -7,6 +7,7 @@ name = "pypi"
 requests = "*"
 pyjwt = "*"
 termcolor = "*"
+arghelper = "*"
 
 [dev-packages]
 "autopep8" = "*"
