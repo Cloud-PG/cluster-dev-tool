@@ -96,6 +96,8 @@ def main():
         cur_parser_infrastructure_property.add_argument(
             'parser_{}_target'.format(property_), metavar="target",
             type=str, help='Target of command {}'.format(property_))
+        cur_parser_infrastructure_property.add_argument('--filter', metavar="filter",
+            type=str, choices=['ansible_errors', 'ansible_errors_squeezed'], help='Filter for command {}'.format(property_))
 
     args, _ = parser.parse_known_args()
 
@@ -118,7 +120,7 @@ def main():
         cur_target = getattr(args, tmp)
         if cur_target in inventory['infrastructures']:
             ctx = get_context(cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
-            getattr(ctx, args.sub_command)()
+            getattr(ctx, args.sub_command)(output_filter=args.filter)
     else:
         parser.print_help()
 

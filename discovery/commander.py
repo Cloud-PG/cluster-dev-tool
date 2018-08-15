@@ -7,7 +7,8 @@ import requests
 from termcolor import colored
 
 from .auth import IAM
-from .utils import print_json_data, print_list, print_right_shift, show
+from .utils import (filter_output, print_json_data, print_list,
+                    print_right_shift, show)
 
 
 class Commander(metaclass=ABCMeta):
@@ -23,12 +24,12 @@ class Commander(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def radl(self):
+    def radl(self, output_filter=None):
         """A string with the original specified RADL of the infrastructure."""
         pass
 
     @abstractmethod
-    def state(self):
+    def state(self, output_filter=None):
         """A JSON object with two elements:
             - state: a string with the aggregated state of the infrastructure.
             - vm_states: a dict indexed with the VM ID and the value the VM state.
@@ -36,17 +37,17 @@ class Commander(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def contmsg(self):
+    def contmsg(self, output_filter=None):
         """A string with the contextualization (log) message."""
         pass
 
     @abstractmethod
-    def outputs(self):
+    def outputs(self, output_filter=None):
         """In case of TOSCA documents it will return a JSON object with the outputs of the TOSCA document."""
         pass
 
     @abstractmethod
-    def data(self):
+    def data(self, output_filter=None):
         """A string with the JSOMN serialized data of the infrastructure."""
         pass
 
@@ -127,22 +128,22 @@ class CommanderIM(Commander):
     def destroy(self):
         pass
 
-    def radl(self):
-        self.__property_name('radl')
+    def radl(self, output_filter=None):
+        self.__property_name('radl', output_filter=output_filter)
 
-    def state(self):
-        self.__property_name('state')
+    def state(self, output_filter=None):
+        self.__property_name('state', output_filter=output_filter)
 
-    def contmsg(self):
-        self.__property_name('contmsg')
+    def contmsg(self, output_filter=None):
+        self.__property_name('contmsg', output_filter=output_filter)
 
-    def outputs(self):
-        self.__property_name('outputs')
+    def outputs(self, output_filter=None):
+        self.__property_name('outputs', output_filter=output_filter)
 
-    def data(self):
-        self.__property_name('data')
+    def data(self, output_filter=None):
+        self.__property_name('data', output_filter=output_filter)
 
-    def __prepare_result(self, res):
+    def __prepare_result(self, res, output_filter=None):
         try:
             content = res.json()
         except json.decoder.JSONDecodeError:
@@ -153,10 +154,14 @@ class CommanderIM(Commander):
             print_json_data(res.json()) if isinstance(
                 content, dict) else content
         )
+
+        if output_filter:
+            result = filter_output(result, output_filter)
+
         result = print_right_shift(result)
         return result
 
-    def __property_name(self, property_, force=False):
+    def __property_name(self, property_, force=False, output_filter=None):
         """Get the infrastructure state.
 
         API REST:
@@ -170,7 +175,7 @@ class CommanderIM(Commander):
             headers=self.__headers
         )
 
-        result = self.__prepare_result(res)
+        result = self.__prepare_result(res, output_filter=output_filter)
 
         show(
             colored("[Discovery]", "magenta"),
