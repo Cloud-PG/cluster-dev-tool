@@ -88,6 +88,11 @@ def main():
     parser_infrastructure_show.add_argument(
         'parser_infrastructure_show_target', metavar="target",
         type=str, help='Target of show command for infrastructures. Possible values: ["all", infrastructure_id]')
+    parser_infrastructure_delete = sub_parser_infrastructure.add_parser(
+        'delete', help='Delete an infrastructures')
+    parser_infrastructure_delete.add_argument(
+        'parser_infrastructure_delete_target', metavar="target",
+        type=str, help='Target of delete command for infrastructures. It\'s the name given to that infrastructure.')
 
     # sub command [radl, state, contmsg, outputs, data]
     for property_ in ["radl", "state", "contmsg", "outputs", "data"]:
@@ -111,16 +116,51 @@ def main():
         if args.sub_command_commander == 'show':
             if not command_show(args.sub_command, args.parser_commander_show_target, inventory['commanders']):
                 parser.print_help()
+        else:
+            parser.print_help()
     elif args.sub_command == "infrastructure":
         if args.sub_command_infrastructure == 'show':
             if not command_show(args.sub_command, args.parser_infrastructure_show_target, inventory['infrastructures']):
                 parser.print_help()
+        elif args.sub_command_infrastructure == 'delete':
+            cur_target = args.parser_infrastructure_delete_target
+            if args.parser_infrastructure_delete_target in inventory['infrastructures']:
+                ctx = get_context(cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
+                if ctx.delete():
+                    del inventory['infrastructures'][cur_target]
+                    with open(args.inventory, 'w') as inventory_file:
+                        json.dump(inventory, inventory_file)
+                    show(
+                        colored("[Discovery]", "magenta"),
+                        colored("[Infrastructure]", "white"),
+                        colored("[{}][successfully deleted. Inventory is updated...]".format(args.parser_infrastructure_delete_target), "green")
+                    )
+                else:
+                    show(
+                        colored("[Discovery]", "magenta"),
+                        colored("[Infrastructure]", "white"),
+                        colored("[{}][was not deleted successfully...]".format(args.parser_infrastructure_delete_target), "red")
+                    )
+            else:
+                show(
+                    colored("[Discovery]", "magenta"),
+                    colored("[Infrastructure]", "white"),
+                    colored("[{}][not found...]".format(args.parser_infrastructure_delete_target), "red")
+                )
+        else:
+            parser.print_help()
     elif args.sub_command in ["radl", "state", "contmsg", "outputs", "data"]:
         tmp = 'parser_{}_target'.format(args.sub_command)
         cur_target = getattr(args, tmp)
         if cur_target in inventory['infrastructures']:
             ctx = get_context(cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
             getattr(ctx, args.sub_command)(output_filter=args.filter)
+        else:
+            show(
+                colored("[Discovery]", "magenta"),
+                colored("[Infrastructure]", "white"),
+                colored("[{}][not found...]".format(args.parser_infrastructure_delete_target), "red")
+            )
     else:
         parser.print_help()
 

@@ -19,7 +19,7 @@ class Commander(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def destroy(self):
+    def delete(self):
         """Undeploy all the virtual machines in the infrastructure."""
         pass
 
@@ -125,8 +125,37 @@ class CommanderIM(Commander):
 
         result = self.__prepare_result(res)
 
-    def destroy(self):
-        pass
+    def delete(self):
+        token = self.__auth.token()
+
+        self.__header_compose(token)
+
+        show(
+            colored("[Discovery]", "magenta"),
+            colored("[{}]".format(self.__in_name), "white"),
+            colored("[{}]".format(self.__target_name), "red"),
+            colored("[DELETING] ...", "yellow")
+        )
+
+        res = requests.delete(
+            self.__url_compose(self.__in_id),
+            headers=self.__headers
+        )
+
+        result = self.__prepare_result(res)
+
+        show(
+            colored("[Discovery]", "magenta"),
+            colored("[{}]".format(self.__in_name), "white"),
+            colored("[{}]".format(self.__target_name), "red"),
+            colored("[DELETE]", "green"),
+            colored("[\n{}\n]".format(result), "blue")
+        )
+
+        if res.status_code == 200:
+            return True
+
+        return False
 
     def radl(self, output_filter=None):
         self.__property_name('radl', output_filter=output_filter)
