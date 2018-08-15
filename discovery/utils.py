@@ -34,6 +34,11 @@ def strip_error_line(line, lenght=80):
         return line
 
 
+def extract_in_id(url):
+    return url.split("/")[-1].strip()
+
+
+
 def filter_output(text, filter_type, max_error_lines=8, max_lenght_error_line=1024):
     if filter_type.find("ansible_errors") == 0:
         squeeze = False

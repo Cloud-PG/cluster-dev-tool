@@ -7,14 +7,14 @@ import requests
 from termcolor import colored
 
 from .auth import IAM
-from .utils import (filter_output, print_json_data, print_list,
+from .utils import (extract_in_id, filter_output, print_json_data, print_list,
                     print_right_shift, show)
 
 
 class Commander(metaclass=ABCMeta):
 
     @abstractmethod
-    def create(self, name, data=None):
+    def create(self, name, data_path=None):
         """Create a new infrastructure."""
         pass
 
@@ -59,7 +59,7 @@ class CommanderIM(Commander):
     Ref: http://imdocs.readthedocs.io/en/devel/REST.html
     """
 
-    def __init__(self, config, target_name, infrastructure_name, infrastructure_id):
+    def __init__(self, config, target_name, infrastructure_name, infrastructure_id=None):
         self.__server_url = config['server_url']
         self.__in_id = infrastructure_id
         self.__in_name = infrastructure_name
@@ -75,8 +75,16 @@ class CommanderIM(Commander):
             raise Exception("Auth '{}' is not supported...".format(
                 config['auth']['type']))
 
+    @property
+    def in_id(self):
+        if self.__in_id is not None:
+            return self.__in_id
+        raise Exception("You have no ID yet for this infrastructure...")
+
     def __url_compose(self, *args):
-        return "{}/{}".format(self.__server_url, "/".join(args))
+        if len(args):
+            return "{}/{}".format(self.__server_url, "/".join(args))
+        return self.__server_url
 
     def __unroll_header(self, **headers):
         tmp = " ; ".join(["{} = {}".format(header, value)
@@ -110,20 +118,43 @@ class CommanderIM(Commander):
 
         self.__headers.update(additional_headers)
 
-    def create(self, name, data=None):
+    def create(self, name, data_path=None):
         token = self.__auth.token()
         self.__header_compose(token, additional_headers={
             'Content-type': "text/yaml"
         })
 
-        with open(data) as yaml_template:
+        show(
+            colored("[Discovery]", "magenta"),
+            colored("[{}]".format(self.__in_name), "white"),
+            colored("[{}]".format(self.__target_name), "red"),
+            colored("[CREATING] ...", "yellow")
+        )
+
+        with open(data_path, 'rb') as template_file:
             res = requests.post(
                 self.__url_compose(),
                 headers=self.__headers,
-                data=yaml_template
+                data=template_file
             )
 
-        result = self.__prepare_result(res)
+        content, result = self.__prepare_result(res, get_content=True)
+
+        print(content)
+        print(result)
+
+        try:
+            self.__in_id = extract_in_id(content['uri'])
+        except TypeError:
+            self.__in_id = extract_in_id(content)
+
+        show(
+            colored("[Discovery]", "magenta"),
+            colored("[{}]".format(self.__in_name), "white"),
+            colored("[{}]".format(self.__target_name), "red"),
+            colored("[CREATE]", "green"),
+            colored("[\n{}\n]".format(result), "blue")
+        )
 
     def delete(self):
         token = self.__auth.token()
@@ -138,7 +169,7 @@ class CommanderIM(Commander):
         )
 
         res = requests.delete(
-            self.__url_compose(self.__in_id),
+            self.__url_compose(self.in_id),
             headers=self.__headers
         )
 
@@ -172,7 +203,7 @@ class CommanderIM(Commander):
     def data(self, output_filter=None):
         self.__property_name('data', output_filter=output_filter)
 
-    def __prepare_result(self, res, output_filter=None):
+    def __prepare_result(self, res, output_filter=None, get_content=False):
         try:
             content = res.json()
         except json.decoder.JSONDecodeError:
@@ -188,6 +219,10 @@ class CommanderIM(Commander):
             result = filter_output(result, output_filter)
 
         result = print_right_shift(result)
+
+        if get_content:
+            return content, result
+
         return result
 
     def __property_name(self, property_, force=False, output_filter=None):
@@ -200,7 +235,7 @@ class CommanderIM(Commander):
         self.__header_compose(token)
 
         res = requests.get(
-            self.__url_compose(self.__in_id, property_),
+            self.__url_compose(self.in_id, property_),
             headers=self.__headers
         )
 
