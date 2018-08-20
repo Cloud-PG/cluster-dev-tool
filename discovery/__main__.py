@@ -207,8 +207,7 @@ def main():
                 show(
                     colored("[Discovery]", "magenta"),
                     colored("[Infrastructure]", "white"),
-                    colored("[{}][not found...]".format(
-                        args.parser_infrastructure_delete_target), "red")
+                    colored("[{}][not found...]".format(cur_target), "red")
                 )
         else:
             parser.print_help()
