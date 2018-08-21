@@ -4,6 +4,7 @@ from abc import ABCMeta, abstractmethod
 from getpass import getpass
 
 import requests
+from radl.radl_parse import parse_radl
 from termcolor import colored
 
 from .auth import IAM
@@ -54,6 +55,11 @@ class Commander(metaclass=ABCMeta):
     @abstractmethod
     def info(self, output_filter=None):
         """Return info about the virtual machines associated to the infrastructure."""
+        pass
+
+    @abstractmethod
+    def vm(self, id_):
+        """Return info about the specific virtual machine associated to the infrastructure."""
         pass
 
 
@@ -289,3 +295,29 @@ class CommanderIM(Commander):
                 tmp.append(line.split("/")[-1].strip())
 
         return tmp
+
+    def vm(self, id_):
+        """Get information about the selected vm in the current infrastructure.
+        
+        Print vm info and return radl object.
+        """
+        token = self.__auth.token()
+        self.__header_compose(token)
+
+        res = requests.get(
+            self.__url_compose(self.in_id, 'vms', str(id_)),
+            headers=self.__headers
+        )
+
+        result = self.__prepare_result(res)
+        radl_obj = parse_radl(res.text)
+
+        show(
+            colored("[Discovery]", "magenta"),
+            colored("[{}]".format(self.__in_name), "white"),
+            colored("[{}]".format(self.__target_name), "red"),
+            colored("[info]", "green"),
+            colored("[\n{}\n]".format(result), "blue")
+        )
+
+        return radl_obj
