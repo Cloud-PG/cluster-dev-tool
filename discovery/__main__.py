@@ -88,6 +88,11 @@ def main():
         dest="sub_command_infrastructure")
     parser_infrastructure_show = sub_parser_infrastructure.add_parser(
         'show', help='Get info about infrastructures')
+    parser_infrastructure_info = sub_parser_infrastructure.add_parser(
+        'info', help='Get info about a specific infrastructure')
+    parser_infrastructure_info.add_argument(
+        'parser_infrastructure_info_target', metavar="target",
+        type=str, help='Target of info command for infrastructures. It\'s the name given to that infrastructure.')
     parser_infrastructure_show.add_argument(
         'parser_infrastructure_show_target', metavar="target",
         type=str, help='Target of show command for infrastructures. Possible values: ["all", infrastructure_id]')
@@ -138,9 +143,21 @@ def main():
         if args.sub_command_infrastructure == 'show':
             if not command_show(args.sub_command, args.parser_infrastructure_show_target, inventory['infrastructures']):
                 parser.print_help()
+        if args.sub_command_infrastructure == 'info':
+            cur_target = args.parser_infrastructure_info_target
+            if cur_target in inventory['infrastructures']:
+                ctx = get_context(
+                    cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
+                ctx.info()
+            else:
+                show(
+                    colored("[Discovery]", "magenta"),
+                    colored("[Infrastructure]", "white"),
+                    colored("[{}][not found...]".format(cur_target), "red")
+                )
         elif args.sub_command_infrastructure == 'delete':
             cur_target = args.parser_infrastructure_delete_target
-            if args.parser_infrastructure_delete_target in inventory['infrastructures']:
+            if cur_target in inventory['infrastructures']:
                 ctx = get_context(
                     cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
                 if ctx.delete():
@@ -151,21 +168,20 @@ def main():
                         colored("[Discovery]", "magenta"),
                         colored("[Infrastructure]", "white"),
                         colored("[{}][successfully deleted. Inventory is updated...]".format(
-                            args.parser_infrastructure_delete_target), "green")
+                            cur_target), "green")
                     )
                 else:
                     show(
                         colored("[Discovery]", "magenta"),
                         colored("[Infrastructure]", "white"),
                         colored("[{}][was not deleted successfully...]".format(
-                            args.parser_infrastructure_delete_target), "red")
+                            cur_target), "red")
                     )
             else:
                 show(
                     colored("[Discovery]", "magenta"),
                     colored("[Infrastructure]", "white"),
-                    colored("[{}][not found...]".format(
-                        args.parser_infrastructure_delete_target), "red")
+                    colored("[{}][not found...]".format(cur_target), "red")
                 )
         elif args.sub_command_infrastructure == 'create':
             cur_target = args.parser_infrastructure_create_target_name

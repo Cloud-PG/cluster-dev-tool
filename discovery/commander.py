@@ -51,6 +51,11 @@ class Commander(metaclass=ABCMeta):
         """A string with the JSOMN serialized data of the infrastructure."""
         pass
 
+    @abstractmethod
+    def info(self, output_filter=None):
+        """Return info about the virtual machines associated to the infrastructure."""
+        pass
+
 
 class CommanderIM(Commander):
 
@@ -252,3 +257,35 @@ class CommanderIM(Commander):
         if res.status_code == 400:
             if res.text.find("OIDC auth Token expired") != -1:
                 return self.__property_name(property_, force=True)
+
+    def info(self, output_filter=None):
+        """Get information about the vms of the infrastructure.
+
+        Print a list of URIs referencing the virtual machines associated to the
+        infrastructure with ID and return a list of vm ids.
+        """
+        token = self.__auth.token()
+        self.__header_compose(token)
+
+        res = requests.get(
+            self.__url_compose(self.in_id),
+            headers=self.__headers
+        )
+
+        result = self.__prepare_result(res, output_filter=output_filter)
+
+        show(
+            colored("[Discovery]", "magenta"),
+            colored("[{}]".format(self.__in_name), "white"),
+            colored("[{}]".format(self.__target_name), "red"),
+            colored("[info]", "green"),
+            colored("[\n{}\n]".format(result), "blue")
+        )
+
+        tmp = []
+
+        for line in result.split("\n"):
+            if line.find(self.in_id) != -1:
+                tmp.append(line.split("/")[-1].strip())
+
+        return tmp
