@@ -84,55 +84,40 @@ def main():
     # sub command [infrastructure]
     parser_infrastructure = subparsers.add_parser(
         'infrastructure', help='Explore inventory infrastructure')
+    parser_infrastructure.add_argument(
+        'infrastructure_target', metavar="target",
+        type=str, help='Target infrastructures. It\'s the name given to that infrastructure.')
     sub_parser_infrastructure = parser_infrastructure.add_subparsers(
         dest="sub_command_infrastructure")
     # show
     parser_infrastructure_show = sub_parser_infrastructure.add_parser(
         'show', help='Get info about infrastructures')
-    parser_infrastructure_show.add_argument(
-        'parser_infrastructure_show_target', metavar="target",
-        type=str, help='Target of show command for infrastructures. Possible values: ["all", infrastructure_id]')
     # info
     parser_infrastructure_info = sub_parser_infrastructure.add_parser(
         'info', help='Get info about a specific infrastructure')
-    parser_infrastructure_info.add_argument(
-        'parser_infrastructure_info_target', metavar="target",
-        type=str, help='Target of info command for infrastructures. It\'s the name given to that infrastructure.')
     # delete
     parser_infrastructure_delete = sub_parser_infrastructure.add_parser(
         'delete', help='Delete an infrastructures')
-    parser_infrastructure_delete.add_argument(
-        'parser_infrastructure_delete_target', metavar="target",
-        type=str, help='Target of delete command for infrastructures. It\'s the name given to that infrastructure.')
     # create
     parser_infrastructure_create = sub_parser_infrastructure.add_parser(
         'create', help='Create an new infrastructures')
     parser_infrastructure_create.add_argument(
-        'parser_infrastructure_create_target_name', metavar="name",
-        type=str, help='The name of the new infrastructures.')
+        'parser_infrastructure_create_target_data_path', metavar="data_path",
+        type=arghelper.extant_file, help='The template to use. This have to be an existing file.')
     parser_infrastructure_create.add_argument(
         'parser_infrastructure_create_target_commander', metavar="commander",
         type=str, help='The name of the commander to use.')
-    parser_infrastructure_create.add_argument(
-        'parser_infrastructure_create_target_data_path', metavar="data_path",
-        type=arghelper.extant_file, help='The template to use. This have to be an existing file.')
     # vm
     parser_infrastructure_vm = sub_parser_infrastructure.add_parser(
         'vm', help='Get vm info in a specific infrastructure')
     parser_infrastructure_vm.add_argument(
         'parser_infrastructure_vm_number', metavar="number",
         type=int, help='Number of vm to be inspected.')
-    parser_infrastructure_vm.add_argument(
-        'parser_infrastructure_vm_target', metavar="target",
-        type=str, help='Target infrastructure name. It\'s the name given to that infrastructure.')
 
     # sub command [radl, state, contmsg, outputs, data]
     for property_ in ["radl", "state", "contmsg", "outputs", "data"]:
         cur_parser_infrastructure_property = sub_parser_infrastructure.add_parser(
             property_, help='Property {} of the infrastructures'.format(property_))
-        cur_parser_infrastructure_property.add_argument(
-            'parser_{}_target'.format(property_), metavar="target",
-            type=str, help='Target of command {}'.format(property_))
         cur_parser_infrastructure_property.add_argument('--filter', metavar="filter",
                                                         type=str, choices=['ansible_errors', 'squeezed_ansible_errors'], help='Filter for command {}'.format(property_))
 
@@ -148,16 +133,16 @@ def main():
     # RUN
     if args.sub_command == "commander":
         if args.sub_command_commander == 'show':
-            if not command_show(args.sub_command, args.parser_commander_show_target, inventory['commanders']):
+            if not command_show(args.sub_command, args.infrastructure_target, inventory['commanders']):
                 parser.print_help()
         else:
             parser.print_help()
     elif args.sub_command == "infrastructure":
         if args.sub_command_infrastructure == 'show':
-            if not command_show(args.sub_command, args.parser_infrastructure_show_target, inventory['infrastructures']):
+            if not command_show(args.sub_command, args.infrastructure_target, inventory['infrastructures']):
                 parser.print_help()
         elif args.sub_command_infrastructure == 'info':
-            cur_target = args.parser_infrastructure_info_target
+            cur_target = args.infrastructure_target
             if cur_target in inventory['infrastructures']:
                 ctx = get_context(
                     cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
@@ -169,7 +154,7 @@ def main():
                     colored("[{}][not found...]".format(cur_target), "red")
                 )
         elif args.sub_command_infrastructure == 'vm':
-            cur_target = args.parser_infrastructure_vm_target
+            cur_target = args.infrastructure_target
             if cur_target in inventory['infrastructures']:
                 ctx = get_context(
                     cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
@@ -181,7 +166,7 @@ def main():
                     colored("[{}][not found...]".format(cur_target), "red")
                 )
         elif args.sub_command_infrastructure == 'delete':
-            cur_target = args.parser_infrastructure_delete_target
+            cur_target = args.infrastructure_target
             if cur_target in inventory['infrastructures']:
                 ctx = get_context(
                     cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
@@ -209,7 +194,7 @@ def main():
                     colored("[{}][not found...]".format(cur_target), "red")
                 )
         elif args.sub_command_infrastructure == 'create':
-            cur_target = args.parser_infrastructure_create_target_name
+            cur_target = args.infrastructure_target
             if args.parser_infrastructure_create_target_commander in inventory['commanders']:
                 ctx = get_context(cur_target, {
                     'commander': args.parser_infrastructure_create_target_commander,
@@ -237,8 +222,7 @@ def main():
                         args.parser_infrastructure_create_target_commander), "red")
                 )
         elif args.sub_command_infrastructure in ["radl", "state", "contmsg", "outputs", "data"]:
-            tmp = 'parser_{}_target'.format(args.sub_command_infrastructure)
-            cur_target = getattr(args, tmp)
+            cur_target = args.infrastructure_target
             if cur_target in inventory['infrastructures']:
                 ctx = get_context(
                     cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
