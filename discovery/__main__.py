@@ -116,6 +116,12 @@ def main():
     parser_infrastructure_vm.add_argument(
         'parser_infrastructure_vm_number', metavar="number",
         type=int, help='Number of vm to be inspected.')
+    # ssh
+    parser_infrastructure_ssh = sub_parser_infrastructure.add_parser(
+        'ssh', help='Use ssh commands')
+    parser_infrastructure_ssh.add_argument(
+        'parser_infrastructure_ssh_vm_number', metavar="vm_number",
+        type=int, help='Number of vm to be invoked.')
 
     # sub command [radl, state, contmsg, outputs, data]
     for property_ in ["radl", "state", "contmsg", "outputs", "data"]:
@@ -209,6 +215,30 @@ def main():
                         colored("[Discovery]", "magenta"),
                         colored("[Infrastructure]", "white"),
                         colored("[{}][not found...]".format(cur_target), "red")
+                    )
+            elif args.sub_command_infrastructure == 'ssh':
+                cur_commander = inventory['infrastructures'][cur_target]['commander']
+                if cur_commander in inventory['commanders']:
+                    cur_commander_info = inventory['commanders'][cur_commander]
+                    if 'bastion' in cur_commander_info:
+                        ctx = get_context(
+                            cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
+                        ctx.ssh(
+                            cur_commander_info['bastion']['url'],
+                            cur_commander_info['bastion']['user'],
+                            args.parser_infrastructure_ssh_vm_number
+                        )
+                    else:
+                        show(
+                            colored("[Discovery]", "magenta"),
+                            colored("[Commander]", "white"),
+                            colored("[{}][have no bastion]".format(cur_commander), "red")
+                        )
+                else:
+                    show(
+                        colored("[Discovery]", "magenta"),
+                        colored("[Commander]", "white"),
+                        colored("[{}][not found...]".format(cur_commander), "red")
                     )
             else:
                 parser.print_help()

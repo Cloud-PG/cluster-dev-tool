@@ -3,6 +3,7 @@ import json
 from abc import ABCMeta, abstractmethod
 from getpass import getpass
 
+import paramiko
 import requests
 from radl.radl_parse import parse_radl
 from termcolor import colored
@@ -10,6 +11,31 @@ from termcolor import colored
 from .auth import IAM
 from .utils import (extract_in_id, filter_output, print_json_data, print_list,
                     print_right_shift, show)
+
+
+class BastionSSH(object):
+
+    def __init__(self, url, user):
+        self.__url = url
+        self.__user = user
+        self.__ssh = paramiko.SSHClient()
+        self.__ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    def __connect(self):
+        password = getpass(
+            "[Insert User [{}] password]...".format(self.__user))
+        self.__ssh.connect(self.__url, username=self.__user, password=password)
+
+    def __enter__(self):
+        self.__connect()
+        return self
+
+    def __exit__(self, type_, value, traceback):
+        self.__ssh.close()
+
+    def exec(self, command):
+        stdin, stdout, stderr = self.__ssh.exec_command(command)
+        return stdin, stdout, stderr
 
 
 class Commander(metaclass=ABCMeta):
@@ -23,7 +49,7 @@ class Commander(metaclass=ABCMeta):
     def delete(self):
         """Undeploy all the virtual machines in the infrastructure."""
         pass
-    
+
     @abstractmethod
     def reconfigure(self):
         """Reconfigure the infrastructure."""
@@ -90,6 +116,11 @@ class CommanderIM(Commander):
         else:
             raise Exception("Auth '{}' is not supported...".format(
                 config['auth']['type']))
+
+    def ssh(self, url, user, vm_number):
+        with BastionSSH(url, user) as cur_shell:
+            stdin, stdout, stderr = cur_shell.exec("ls")
+            print(stdout.readlines())
 
     @property
     def in_id(self):
