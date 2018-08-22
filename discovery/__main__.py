@@ -91,10 +91,13 @@ def main():
         dest="sub_command_infrastructure")
     # show
     parser_infrastructure_show = sub_parser_infrastructure.add_parser(
-        'show', help='Get info about infrastructures')
+        'show', help='Get info about infrastructures in the inventory')
     # info
     parser_infrastructure_info = sub_parser_infrastructure.add_parser(
-        'info', help='Get info about a specific infrastructure')
+        'info', help='Get info about the infrastructure')
+    # reconfigure
+    parser_infrastructure_reconfigure = sub_parser_infrastructure.add_parser(
+        'reconfigure', help='Reconfigure about the infrastructure')
     # delete
     parser_infrastructure_delete = sub_parser_infrastructure.add_parser(
         'delete', help='Delete an infrastructures')
@@ -109,7 +112,7 @@ def main():
         type=str, help='The name of the commander to use.')
     # vm
     parser_infrastructure_vm = sub_parser_infrastructure.add_parser(
-        'vm', help='Get vm info in a specific infrastructure')
+        'vm', help='Get infrastructure vm info')
     parser_infrastructure_vm.add_argument(
         'parser_infrastructure_vm_number', metavar="number",
         type=int, help='Number of vm to be inspected.')
@@ -147,6 +150,31 @@ def main():
                 ctx = get_context(
                     cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
                 ctx.info()
+            else:
+                show(
+                    colored("[Discovery]", "magenta"),
+                    colored("[Infrastructure]", "white"),
+                    colored("[{}][not found...]".format(cur_target), "red")
+                )
+        elif args.sub_command_infrastructure in ["radl", "state", "contmsg", "outputs", "data"]:
+            cur_target = args.infrastructure_target
+            if cur_target in inventory['infrastructures']:
+                ctx = get_context(
+                    cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
+                getattr(ctx, args.sub_command_infrastructure)(
+                    output_filter=args.filter)
+            else:
+                show(
+                    colored("[Discovery]", "magenta"),
+                    colored("[Infrastructure]", "white"),
+                    colored("[{}][not found...]".format(cur_target), "red")
+                )
+        elif args.sub_command_infrastructure == 'reconfigure':
+            cur_target = args.infrastructure_target
+            if cur_target in inventory['infrastructures']:
+                ctx = get_context(
+                    cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
+                ctx.reconfigure()
             else:
                 show(
                     colored("[Discovery]", "magenta"),
@@ -220,19 +248,6 @@ def main():
                     colored("[Commander]", "white"),
                     colored("[{}][not found...]".format(
                         args.parser_infrastructure_create_target_commander), "red")
-                )
-        elif args.sub_command_infrastructure in ["radl", "state", "contmsg", "outputs", "data"]:
-            cur_target = args.infrastructure_target
-            if cur_target in inventory['infrastructures']:
-                ctx = get_context(
-                    cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
-                getattr(ctx, args.sub_command_infrastructure)(
-                    output_filter=args.filter)
-            else:
-                show(
-                    colored("[Discovery]", "magenta"),
-                    colored("[Infrastructure]", "white"),
-                    colored("[{}][not found...]".format(cur_target), "red")
                 )
         else:
             parser.print_help()

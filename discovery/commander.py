@@ -23,6 +23,11 @@ class Commander(metaclass=ABCMeta):
     def delete(self):
         """Undeploy all the virtual machines in the infrastructure."""
         pass
+    
+    @abstractmethod
+    def reconfigure(self):
+        """Reconfigure the infrastructure."""
+        pass
 
     @abstractmethod
     def radl(self, output_filter=None):
@@ -296,9 +301,29 @@ class CommanderIM(Commander):
 
         return tmp
 
+    def reconfigure(self):
+        """Reconfigure the whole infrastructure."""
+        token = self.__auth.token()
+        self.__header_compose(token)
+
+        res = requests.put(
+            self.__url_compose(self.in_id, 'reconfigure'),
+            headers=self.__headers
+        )
+
+        result = self.__prepare_result(res)
+
+        show(
+            colored("[Discovery]", "magenta"),
+            colored("[{}]".format(self.__in_name), "white"),
+            colored("[{}]".format(self.__target_name), "red"),
+            colored("[reconfigure]", "green"),
+            colored("[\n{}\n]".format(result), "blue")
+        )
+
     def vm(self, id_):
         """Get information about the selected vm in the current infrastructure.
-        
+
         Print vm info and return radl object.
         """
         token = self.__auth.token()
