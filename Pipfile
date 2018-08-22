@@ -9,6 +9,7 @@ pyjwt = "*"
 termcolor = "*"
 arghelper = "*"
 radl = "*"
+paramiko = "*"
 
 [dev-packages]
 "autopep8" = "*"
