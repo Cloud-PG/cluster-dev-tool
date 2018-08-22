@@ -174,9 +174,9 @@ def main():
                 ctx = get_context(
                     cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
                 method_to_call = getattr(ctx, args.sub_command_infrastructure)
-                if 'filter' in args:
+                if 'filter' in args:  # for 'radl', 'state', 'contmsg', 'outputs', 'data' commands
                     method_to_call(output_filter=args.filter)
-                elif 'parser_infrastructure_vm_number' in args:
+                elif 'parser_infrastructure_vm_number' in args:  # for 'vm' command
                     method_to_call(args.parser_infrastructure_vm_number)
                 else:
                     method_to_call()
