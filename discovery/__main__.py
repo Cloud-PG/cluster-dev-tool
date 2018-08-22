@@ -141,88 +141,8 @@ def main():
         else:
             parser.print_help()
     elif args.sub_command == "infrastructure":
-        if args.sub_command_infrastructure == 'show':
-            if not command_show(args.sub_command, args.infrastructure_target, inventory['infrastructures']):
-                parser.print_help()
-        elif args.sub_command_infrastructure == 'info':
-            cur_target = args.infrastructure_target
-            if cur_target in inventory['infrastructures']:
-                ctx = get_context(
-                    cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
-                ctx.info()
-            else:
-                show(
-                    colored("[Discovery]", "magenta"),
-                    colored("[Infrastructure]", "white"),
-                    colored("[{}][not found...]".format(cur_target), "red")
-                )
-        elif args.sub_command_infrastructure in ["radl", "state", "contmsg", "outputs", "data"]:
-            cur_target = args.infrastructure_target
-            if cur_target in inventory['infrastructures']:
-                ctx = get_context(
-                    cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
-                getattr(ctx, args.sub_command_infrastructure)(
-                    output_filter=args.filter)
-            else:
-                show(
-                    colored("[Discovery]", "magenta"),
-                    colored("[Infrastructure]", "white"),
-                    colored("[{}][not found...]".format(cur_target), "red")
-                )
-        elif args.sub_command_infrastructure == 'reconfigure':
-            cur_target = args.infrastructure_target
-            if cur_target in inventory['infrastructures']:
-                ctx = get_context(
-                    cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
-                ctx.reconfigure()
-            else:
-                show(
-                    colored("[Discovery]", "magenta"),
-                    colored("[Infrastructure]", "white"),
-                    colored("[{}][not found...]".format(cur_target), "red")
-                )
-        elif args.sub_command_infrastructure == 'vm':
-            cur_target = args.infrastructure_target
-            if cur_target in inventory['infrastructures']:
-                ctx = get_context(
-                    cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
-                ctx.vm(args.parser_infrastructure_vm_number)
-            else:
-                show(
-                    colored("[Discovery]", "magenta"),
-                    colored("[Infrastructure]", "white"),
-                    colored("[{}][not found...]".format(cur_target), "red")
-                )
-        elif args.sub_command_infrastructure == 'delete':
-            cur_target = args.infrastructure_target
-            if cur_target in inventory['infrastructures']:
-                ctx = get_context(
-                    cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
-                if ctx.delete():
-                    del inventory['infrastructures'][cur_target]
-                    with open(args.inventory, 'w') as inventory_file:
-                        json.dump(inventory, inventory_file, indent=2)
-                    show(
-                        colored("[Discovery]", "magenta"),
-                        colored("[Infrastructure]", "white"),
-                        colored("[{}][successfully deleted. Inventory is updated...]".format(
-                            cur_target), "green")
-                    )
-                else:
-                    show(
-                        colored("[Discovery]", "magenta"),
-                        colored("[Infrastructure]", "white"),
-                        colored("[{}][was not deleted successfully...]".format(
-                            cur_target), "red")
-                    )
-            else:
-                show(
-                    colored("[Discovery]", "magenta"),
-                    colored("[Infrastructure]", "white"),
-                    colored("[{}][not found...]".format(cur_target), "red")
-                )
-        elif args.sub_command_infrastructure == 'create':
-            cur_target = args.infrastructure_target
+        cur_target = args.infrastructure_target
+        if args.sub_command_infrastructure == 'create':
             if args.parser_infrastructure_create_target_commander in inventory['commanders']:
                 ctx = get_context(cur_target, {
                     'commander': args.parser_infrastructure_create_target_commander,
@@ -249,8 +169,55 @@ def main():
                     colored("[{}][not found...]".format(
                         args.parser_infrastructure_create_target_commander), "red")
                 )
+        elif cur_target in inventory['infrastructures']:
+            if args.sub_command_infrastructure in ['info', 'radl', 'state', 'contmsg', 'outputs', 'data', 'reconfigure', 'vm']:
+                ctx = get_context(
+                    cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
+                method_to_call = getattr(ctx, args.sub_command_infrastructure)
+                if 'filter' in args:
+                    method_to_call(output_filter=args.filter)
+                elif 'parser_infrastructure_vm_number' in args:
+                    method_to_call(args.parser_infrastructure_vm_number)
+                else:
+                    method_to_call()
+            elif args.sub_command_infrastructure == 'show':
+                if not command_show(args.sub_command, cur_target, inventory['infrastructures']):
+                    parser.print_help()
+            elif args.sub_command_infrastructure == 'delete':
+                if cur_target in inventory['infrastructures']:
+                    ctx = get_context(
+                        cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
+                    if ctx.delete():
+                        del inventory['infrastructures'][cur_target]
+                        with open(args.inventory, 'w') as inventory_file:
+                            json.dump(inventory, inventory_file, indent=2)
+                        show(
+                            colored("[Discovery]", "magenta"),
+                            colored("[Infrastructure]", "white"),
+                            colored("[{}][successfully deleted. Inventory is updated...]".format(
+                                cur_target), "green")
+                        )
+                    else:
+                        show(
+                            colored("[Discovery]", "magenta"),
+                            colored("[Infrastructure]", "white"),
+                            colored("[{}][was not deleted successfully...]".format(
+                                cur_target), "red")
+                        )
+                else:
+                    show(
+                        colored("[Discovery]", "magenta"),
+                        colored("[Infrastructure]", "white"),
+                        colored("[{}][not found...]".format(cur_target), "red")
+                    )
+            else:
+                parser.print_help()
         else:
-            parser.print_help()
+            show(
+                colored("[Discovery]", "magenta"),
+                colored("[Infrastructure]", "white"),
+                colored("[{}][not found...]".format(cur_target), "red")
+            )
     else:
         parser.print_help()
 
