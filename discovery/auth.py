@@ -98,9 +98,9 @@ class IAM(Auth):
         show(
             colored("[Discovery]", "magenta"),
             colored("[IAM]", "white"),
-            colored("[Insert Password]:", "cyan")
+            colored("[Password Required]:", "cyan")
         )
-        passwd = getpass("[Insert Password]...")
+        passwd = getpass("[Insert Your IAM Password]...")
         show(
             colored("[Discovery]", "magenta"),
             colored("[IAM]", "white"),

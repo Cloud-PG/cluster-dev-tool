@@ -22,8 +22,13 @@ class BastionSSH(object):
         self.__ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
     def __connect(self):
+        show(
+            colored("[Discovery]", "magenta"),
+            colored("[Basion]", "white"),
+            colored("[{}]".format(self.__url), "cyan")
+        )
         password = getpass(
-            "[Insert User [{}] password]...".format(self.__user))
+            "[Insert User {} password]...".format(self.__user))
         self.__ssh.connect(self.__url, username=self.__user, password=password)
 
     def __enter__(self):
