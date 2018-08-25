@@ -1,5 +1,6 @@
 import configparser
 import json
+import socket
 from abc import ABCMeta, abstractmethod
 from getpass import getpass
 
@@ -13,23 +14,31 @@ from .utils import (extract_in_id, filter_output, print_json_data, print_list,
                     print_right_shift, show)
 
 
-class BastionSSH(object):
+class SSHHandler(object):
 
-    def __init__(self, url, user):
-        self.__url = url
+    def __init__(self, ip, user, username, password=None, public_key=None, private_key=None):
+        self.__ip = ip
         self.__user = user
+        self.__password = password
+        self.__public_key = public_key
+        self.__private_key = private_key
         self.__ssh = paramiko.SSHClient()
         self.__ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
     def __connect(self):
         show(
             colored("[Discovery]", "magenta"),
-            colored("[Basion]", "white"),
-            colored("[{}]".format(self.__url), "cyan")
+            colored("[vm]", "white"),
+            colored("[{}]".format(self.__ip), "cyan")
         )
-        password = getpass(
-            "[Insert User {} password]...".format(self.__user))
-        self.__ssh.connect(self.__url, username=self.__user, password=password)
+        if not self.__private_key and not self.__password:
+            password = getpass(
+                "[Insert User {} password]...".format(self.__user))
+            self.__ssh.connect(self.__ip, username=self.__user, password=password)
+        elif self.__password:
+            self.__ssh.connect(self.__ip, username=self.__user, password=self.__password)
+        else:
+            self.__ssh.connect(self.__ip, username=self.__user, pkey=self.__private_key)
 
     def __enter__(self):
         self.__connect()
@@ -46,27 +55,27 @@ class BastionSSH(object):
 class Commander(metaclass=ABCMeta):
 
     @abstractmethod
-    def create(self, name, data_path=None):
+    def create(self, name, data_path=None, show_output=True):
         """Create a new infrastructure."""
         pass
 
     @abstractmethod
-    def delete(self):
+    def delete(self, show_output=True):
         """Undeploy all the virtual machines in the infrastructure."""
         pass
 
     @abstractmethod
-    def reconfigure(self):
+    def reconfigure(self, show_output=True):
         """Reconfigure the infrastructure."""
         pass
 
     @abstractmethod
-    def radl(self, output_filter=None):
+    def radl(self, show_output=True, output_filter=None):
         """A string with the original specified RADL of the infrastructure."""
         pass
 
     @abstractmethod
-    def state(self, output_filter=None):
+    def state(self, show_output=True, output_filter=None):
         """A JSON object with two elements:
             - state: a string with the aggregated state of the infrastructure.
             - vm_states: a dict indexed with the VM ID and the value the VM state.
@@ -74,27 +83,27 @@ class Commander(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def contmsg(self, output_filter=None):
+    def contmsg(self, show_output=True, output_filter=None):
         """A string with the contextualization (log) message."""
         pass
 
     @abstractmethod
-    def outputs(self, output_filter=None):
+    def outputs(self, show_output=True, output_filter=None):
         """In case of TOSCA documents it will return a JSON object with the outputs of the TOSCA document."""
         pass
 
     @abstractmethod
-    def data(self, output_filter=None):
+    def data(self, show_output=True, output_filter=None):
         """A string with the JSOMN serialized data of the infrastructure."""
         pass
 
     @abstractmethod
-    def info(self, output_filter=None):
+    def info(self, show_output=True, output_filter=None):
         """Return info about the virtual machines associated to the infrastructure."""
         pass
 
     @abstractmethod
-    def vm(self, id_):
+    def vm(self, id_, show_output=True):
         """Return info about the specific virtual machine associated to the infrastructure."""
         pass
 
@@ -122,10 +131,61 @@ class CommanderIM(Commander):
             raise Exception("Auth '{}' is not supported...".format(
                 config['auth']['type']))
 
-    def ssh(self, url, user, vm_number):
-        with BastionSSH(url, user) as cur_shell:
-            stdin, stdout, stderr = cur_shell.exec("ls")
-            print(stdout.readlines())
+    def __select_interface(self, system, vm_number=-1):
+        """Select the ip of an interface from the available interfaces.
+
+        Returns: 
+            str, the interface ip
+        """
+        print(system)
+        print(system.getNumNetworkIfaces())
+        print(system.getRequestedNameIface())
+
+        num_interfaces = system.getNumNetworkIfaces()
+
+        assert num_interfaces > 0, "This vm doesn't have network interfaces..."
+
+        if num_interfaces > 1:
+            interfaces = []
+
+            for idx in range(system.getNumNetworkIfaces()):
+                interfaces.append(system.getIfaceIP(idx))
+            show(
+                colored("[Discovery]", "magenta"),
+                colored("[{}]".format(self.__in_name), "white"),
+                colored("[{}]".format(self.__target_name), "red"),
+                colored("[vm_{}]".format(vm_number), "green"),
+                colored("[interfaces]", "green"),
+                colored("[\n{}\n]".format(
+                    print_right_shift(
+                        "\n".join(["-({}) {}".format(idx, elm) for idx, elm in enumerate(interfaces)])
+                    )
+                ), "blue")
+            )
+            selected_interface = int(input("[Select and interface]: "))
+            return interfaces[selected_interface]
+
+        else:
+            return system.getIfaceIP(0)
+
+
+
+    def ssh(self, url, user, vm_number, use_bastion):
+        vm_info = self.info(show_output=False)
+        max_vm_num_id = max(vm_info)
+
+        assert vm_number >= 0 and vm_number <= max_vm_num_id, "VM id number out of index"
+
+        selected_vm = self.vm(vm_number, show_output=False)
+        ip = self.__select_interface(selected_vm.systems[0], vm_number)
+        username, password, public_key, private_key = selected_vm.systems[0].getCredentialValues()
+
+        print(ip, username, password, public_key, private_key)
+
+        with SSHHandler(ip, user, username, password, public_key, private_key) as cur_shell:
+                stdin, stdout, stderr = cur_shell.exec("pwd")
+                print(stdout.readlines())
+            
 
     @property
     def in_id(self):
@@ -170,18 +230,19 @@ class CommanderIM(Commander):
 
         self.__headers.update(additional_headers)
 
-    def create(self, name, data_path=None):
-        token = self.__auth.token()
+    def create(self, name, data_path=None, show_output=True):
+        token = self.__auth.token(show_output=show_output)
         self.__header_compose(token, additional_headers={
             'Content-type': "text/yaml"
         })
 
-        show(
-            colored("[Discovery]", "magenta"),
-            colored("[{}]".format(self.__in_name), "white"),
-            colored("[{}]".format(self.__target_name), "red"),
-            colored("[CREATING] ...", "yellow")
-        )
+        if show_output:
+            show(
+                colored("[Discovery]", "magenta"),
+                colored("[{}]".format(self.__in_name), "white"),
+                colored("[{}]".format(self.__target_name), "red"),
+                colored("[CREATING] ...", "yellow")
+            )
 
         with open(data_path, 'rb') as template_file:
             res = requests.post(
@@ -192,33 +253,32 @@ class CommanderIM(Commander):
 
         content, result = self.__prepare_result(res, get_content=True)
 
-        print(content)
-        print(result)
-
         try:
             self.__in_id = extract_in_id(content['uri'])
         except TypeError:
             self.__in_id = extract_in_id(content)
 
-        show(
-            colored("[Discovery]", "magenta"),
-            colored("[{}]".format(self.__in_name), "white"),
-            colored("[{}]".format(self.__target_name), "red"),
-            colored("[CREATE]", "green"),
-            colored("[\n{}\n]".format(result), "blue")
-        )
+        if show_output:
+            show(
+                colored("[Discovery]", "magenta"),
+                colored("[{}]".format(self.__in_name), "white"),
+                colored("[{}]".format(self.__target_name), "red"),
+                colored("[CREATE]", "green"),
+                colored("[\n{}\n]".format(result), "blue")
+            )
 
-    def delete(self):
-        token = self.__auth.token()
+    def delete(self, show_output=True):
+        token = self.__auth.token(show_output=show_output)
 
         self.__header_compose(token)
 
-        show(
-            colored("[Discovery]", "magenta"),
-            colored("[{}]".format(self.__in_name), "white"),
-            colored("[{}]".format(self.__target_name), "red"),
-            colored("[DELETING] ...", "yellow")
-        )
+        if show_output:
+            show(
+                colored("[Discovery]", "magenta"),
+                colored("[{}]".format(self.__in_name), "white"),
+                colored("[{}]".format(self.__target_name), "red"),
+                colored("[DELETING] ...", "yellow")
+            )
 
         res = requests.delete(
             self.__url_compose(self.in_id),
@@ -227,33 +287,38 @@ class CommanderIM(Commander):
 
         result = self.__prepare_result(res)
 
-        show(
-            colored("[Discovery]", "magenta"),
-            colored("[{}]".format(self.__in_name), "white"),
-            colored("[{}]".format(self.__target_name), "red"),
-            colored("[DELETE]", "green"),
-            colored("[\n{}\n]".format(result), "blue")
-        )
+        if show_output:
+            show(
+                colored("[Discovery]", "magenta"),
+                colored("[{}]".format(self.__in_name), "white"),
+                colored("[{}]".format(self.__target_name), "red"),
+                colored("[DELETE]", "green"),
+                colored("[\n{}\n]".format(result), "blue")
+            )
 
         if res.status_code == 200:
             return True
 
         return False
 
-    def radl(self, output_filter=None):
-        self.__property_name('radl', output_filter=output_filter)
+    def radl(self, show_output=True, output_filter=None):
+        self.__property_name('radl', show_output=show_output,
+                             output_filter=output_filter)
 
-    def state(self, output_filter=None):
-        self.__property_name('state', output_filter=output_filter)
+    def state(self, show_output=True, output_filter=None):
+        return self.__property_name('state', show_output=show_output, output_filter=output_filter).json()
 
-    def contmsg(self, output_filter=None):
-        self.__property_name('contmsg', output_filter=output_filter)
+    def contmsg(self, show_output=True, output_filter=None):
+        self.__property_name(
+            'contmsg', show_output=show_output, output_filter=output_filter)
 
-    def outputs(self, output_filter=None):
-        self.__property_name('outputs', output_filter=output_filter)
+    def outputs(self, show_output=True, output_filter=None):
+        self.__property_name(
+            'outputs', show_output=show_output, output_filter=output_filter)
 
-    def data(self, output_filter=None):
-        self.__property_name('data', output_filter=output_filter)
+    def data(self, show_output=True, output_filter=None):
+        self.__property_name('data', show_output=show_output,
+                             output_filter=output_filter)
 
     def __prepare_result(self, res, output_filter=None, get_content=False):
         try:
@@ -277,7 +342,7 @@ class CommanderIM(Commander):
 
         return result
 
-    def __property_name(self, property_, force=False, output_filter=None):
+    def __property_name(self, property_, force=False, show_output=True, output_filter=None):
         """Get the infrastructure state.
 
         API REST:
@@ -293,25 +358,28 @@ class CommanderIM(Commander):
 
         result = self.__prepare_result(res, output_filter=output_filter)
 
-        show(
-            colored("[Discovery]", "magenta"),
-            colored("[{}]".format(self.__in_name), "white"),
-            colored("[{}]".format(self.__target_name), "red"),
-            colored("[{}]".format(property_), "green"),
-            colored("[\n{}\n]".format(result), "blue")
-        )
+        if show_output:
+            show(
+                colored("[Discovery]", "magenta"),
+                colored("[{}]".format(self.__in_name), "white"),
+                colored("[{}]".format(self.__target_name), "red"),
+                colored("[{}]".format(property_), "green"),
+                colored("[\n{}\n]".format(result), "blue")
+            )
 
         if res.status_code == 400:
             if res.text.find("OIDC auth Token expired") != -1:
                 return self.__property_name(property_, force=True)
 
-    def info(self, output_filter=None):
+        return res
+
+    def info(self, show_output=True, output_filter=None):
         """Get information about the vms of the infrastructure.
 
         Print a list of URIs referencing the virtual machines associated to the
         infrastructure with ID and return a list of vm ids.
         """
-        token = self.__auth.token()
+        token = self.__auth.token(show_output=show_output)
         self.__header_compose(token)
 
         res = requests.get(
@@ -321,13 +389,14 @@ class CommanderIM(Commander):
 
         result = self.__prepare_result(res, output_filter=output_filter)
 
-        show(
-            colored("[Discovery]", "magenta"),
-            colored("[{}]".format(self.__in_name), "white"),
-            colored("[{}]".format(self.__target_name), "red"),
-            colored("[info]", "green"),
-            colored("[\n{}\n]".format(result), "blue")
-        )
+        if show_output:
+            show(
+                colored("[Discovery]", "magenta"),
+                colored("[{}]".format(self.__in_name), "white"),
+                colored("[{}]".format(self.__target_name), "red"),
+                colored("[info]", "green"),
+                colored("[\n{}\n]".format(result), "blue")
+            )
 
         tmp = []
 
@@ -335,11 +404,11 @@ class CommanderIM(Commander):
             if line.find(self.in_id) != -1:
                 tmp.append(line.split("/")[-1].strip())
 
-        return tmp
+        return [int(elm) for elm in tmp]
 
-    def reconfigure(self):
+    def reconfigure(self, show_output=True):
         """Reconfigure the whole infrastructure."""
-        token = self.__auth.token()
+        token = self.__auth.token(show_output=show_output)
         self.__header_compose(token)
 
         res = requests.put(
@@ -349,20 +418,21 @@ class CommanderIM(Commander):
 
         result = self.__prepare_result(res)
 
-        show(
-            colored("[Discovery]", "magenta"),
-            colored("[{}]".format(self.__in_name), "white"),
-            colored("[{}]".format(self.__target_name), "red"),
-            colored("[reconfigure]", "green"),
-            colored("[\n{}\n]".format(result), "blue")
-        )
+        if show_output:
+            show(
+                colored("[Discovery]", "magenta"),
+                colored("[{}]".format(self.__in_name), "white"),
+                colored("[{}]".format(self.__target_name), "red"),
+                colored("[reconfigure]", "green"),
+                colored("[\n{}\n]".format(result), "blue")
+            )
 
-    def vm(self, id_):
+    def vm(self, id_, show_output=True):
         """Get information about the selected vm in the current infrastructure.
 
         Print vm info and return radl object.
         """
-        token = self.__auth.token()
+        token = self.__auth.token(show_output=show_output)
         self.__header_compose(token)
 
         res = requests.get(
@@ -373,12 +443,13 @@ class CommanderIM(Commander):
         result = self.__prepare_result(res)
         radl_obj = parse_radl(res.text)
 
-        show(
-            colored("[Discovery]", "magenta"),
-            colored("[{}]".format(self.__in_name), "white"),
-            colored("[{}]".format(self.__target_name), "red"),
-            colored("[info]", "green"),
-            colored("[\n{}\n]".format(result), "blue")
-        )
+        if show_output:
+            show(
+                colored("[Discovery]", "magenta"),
+                colored("[{}]".format(self.__in_name), "white"),
+                colored("[{}]".format(self.__target_name), "red"),
+                colored("[info]", "green"),
+                colored("[\n{}\n]".format(result), "blue")
+            )
 
         return radl_obj

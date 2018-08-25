@@ -122,6 +122,8 @@ def main():
     parser_infrastructure_ssh.add_argument(
         'parser_infrastructure_ssh_vm_number', metavar="vm_number",
         type=int, help='Number of vm to be invoked.')
+    parser_infrastructure_ssh.add_argument('--use-bastion', metavar="use_bastion", default=False,
+                                           type=bool, help='Tell to ssh to use the bastion host')
 
     # sub command [radl, state, contmsg, outputs, data]
     for property_ in ["radl", "state", "contmsg", "outputs", "data"]:
@@ -226,19 +228,22 @@ def main():
                         ctx.ssh(
                             cur_commander_info['bastion']['url'],
                             cur_commander_info['bastion']['user'],
-                            args.parser_infrastructure_ssh_vm_number
+                            args.parser_infrastructure_ssh_vm_number,
+                            args.use_bastion
                         )
                     else:
                         show(
                             colored("[Discovery]", "magenta"),
                             colored("[Commander]", "white"),
-                            colored("[{}][have no bastion]".format(cur_commander), "red")
+                            colored("[{}][have no bastion]".format(
+                                cur_commander), "red")
                         )
                 else:
                     show(
                         colored("[Discovery]", "magenta"),
                         colored("[Commander]", "white"),
-                        colored("[{}][not found...]".format(cur_commander), "red")
+                        colored("[{}][not found...]".format(
+                            cur_commander), "red")
                     )
             else:
                 parser.print_help()

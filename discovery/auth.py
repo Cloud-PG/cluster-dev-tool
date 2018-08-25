@@ -93,20 +93,22 @@ class IAM(Auth):
                 colored("[Load session](✓)", "green")
             )
 
-    def __get_token(self):
+    def __get_token(self, show_output=True):
         """Request for a IAM token."""
-        show(
-            colored("[Discovery]", "magenta"),
-            colored("[IAM]", "white"),
-            colored("[Password Required]:", "cyan")
-        )
+        if show_output:
+            show(
+                colored("[Discovery]", "magenta"),
+                colored("[IAM]", "white"),
+                colored("[Password Required]:", "cyan")
+            )
         passwd = getpass("[Insert Your IAM Password]...")
-        show(
-            colored("[Discovery]", "magenta"),
-            colored("[IAM]", "white"),
-            colored("[Request token]:", "yellow"),
-            end='\r'
-        )
+        if show_output:
+            show(
+                colored("[Discovery]", "magenta"),
+                colored("[IAM]", "white"),
+                colored("[Request token]:", "yellow"),
+                end='\r'
+            )
         res = requests.post(self.endpoint, data={
             'client_id': self.client_id,
             'client_secret': self.client_secret,
@@ -115,36 +117,40 @@ class IAM(Auth):
             'password': passwd,
             'scope': self.scope
         })
-        show(
-            colored("[Discovery]", "magenta"),
-            colored("[IAM]", "white"),
-            colored("[Request token](✓)", "green")
-        )
+        if show_output:
+            show(
+                colored("[Discovery]", "magenta"),
+                colored("[IAM]", "white"),
+                colored("[Request token](✓)", "green")
+            )
         self.session = res.json()
         if self.session.get("error", False):
             show(
                 colored("[Discovery]", "magenta"),
                 colored("[IAM]", "white"),
-                colored("[{}](✗)".format(self.session.get("error_description")), "red")
+                colored("[{}](✗)".format(
+                    self.session.get("error_description")), "red")
             )
             return self.__get_token()
         if self.conf_file:
             self.update_config_file()
-        show(
-            colored("[Discovery]", "magenta"),
-            colored("[IAM]", "white"),
-            colored("[Update file](✓)", "green")
-        )
+        if show_output:
+            show(
+                colored("[Discovery]", "magenta"),
+                colored("[IAM]", "white"),
+                colored("[Update file](✓)", "green")
+            )
         return self
 
-    def token(self, force=False):
+    def token(self, show_output=True, force=False):
         """Get a valid IAM token."""
-        show(
-            colored("[Discovery]", "magenta"),
-            colored("[IAM]", "white"),
-            colored("[GET token]", "yellow"),
-            end="\r"
-        )
+        if show_output:
+            show(
+                colored("[Discovery]", "magenta"),
+                colored("[IAM]", "white"),
+                colored("[GET token]", "yellow"),
+                end="\r"
+            )
         if force:
             self.__get_token()
         elif self.session.get('access_token'):
@@ -157,10 +163,11 @@ class IAM(Auth):
                 self.__get_token()
         else:
             self.__get_token()
-        show(
-            colored("[Discovery]", "magenta"),
-            colored("[IAM]", "white"),
-            colored("[Get token](✓)[forced={}]".format(force), "green"),
-            clean=True
-        )
+        if show_output:
+            show(
+                colored("[Discovery]", "magenta"),
+                colored("[IAM]", "white"),
+                colored("[Get token](✓)[forced={}]".format(force), "green"),
+                clean=True
+            )
         return self.session.get('access_token')
