@@ -234,7 +234,7 @@ class CommanderIM(Commander):
                     )
                 ), "blue")
             )
-            selected_interface = int(input("[Select and interface]: "))
+            selected_interface = int(input("[Select an interface]: "))
             return interfaces[selected_interface]
 
         else:
