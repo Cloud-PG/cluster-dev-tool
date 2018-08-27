@@ -155,24 +155,32 @@ def main():
         cur_target = args.infrastructure_target
         if args.sub_command_infrastructure == 'create':
             if args.parser_infrastructure_create_target_commander in inventory['commanders']:
-                ctx = get_context(cur_target, {
-                    'commander': args.parser_infrastructure_create_target_commander,
-                    'id': None
-                }, inventory['commanders'])
-                ctx.create(
-                    cur_target, args.parser_infrastructure_create_target_data_path)
-                inventory['infrastructures'][cur_target] = {
-                    'commander': args.parser_infrastructure_create_target_commander,
-                    'id': ctx.in_id
-                }
-                with open(args.inventory, 'w') as inventory_file:
-                    json.dump(inventory, inventory_file, indent=2)
-                show(
-                    colored("[Discovery]", "magenta"),
-                    colored("[Infrastructure]", "white"),
-                    colored("[{}][successfully created. Inventory is updated...]".format(
-                        cur_target), "green")
-                )
+                if cur_target not in inventory['infrastructures']:
+                    ctx = get_context(cur_target, {
+                        'commander': args.parser_infrastructure_create_target_commander,
+                        'id': None
+                    }, inventory['commanders'])
+                    ctx.create(
+                        cur_target, args.parser_infrastructure_create_target_data_path)
+                    inventory['infrastructures'][cur_target] = {
+                        'commander': args.parser_infrastructure_create_target_commander,
+                        'id': ctx.in_id
+                    }
+                    with open(args.inventory, 'w') as inventory_file:
+                        json.dump(inventory, inventory_file, indent=2)
+                    show(
+                        colored("[Discovery]", "magenta"),
+                        colored("[Infrastructure]", "white"),
+                        colored("[{}][successfully created. Inventory is updated...]".format(
+                            cur_target), "green")
+                    )
+                else:
+                    show(
+                        colored("[Discovery]", "magenta"),
+                        colored("[Commander]", "white"),
+                        colored("[{}][already exists...]".format(
+                            args.parser_infrastructure_create_target_commander), "red")
+                    )
             else:
                 show(
                     colored("[Discovery]", "magenta"),
