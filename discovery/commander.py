@@ -179,15 +179,26 @@ class CommanderIM(Commander):
         assert vm_number >= 0 and vm_number <= max_vm_num_id, "VM id number out of index"
 
         selected_vm = self.vm(vm_number, show_output=False)
-        ip = self.__select_interface(selected_vm.systems[0], vm_number)
-        username, password, public_key, private_key = selected_vm.systems[0].getCredentialValues(
-        )
 
-        print(ip, username, password, public_key, private_key)
+        if selected_vm:
+            ip = self.__select_interface(selected_vm.systems[0], vm_number)
 
-        with SSHHandler(ip, user, username, password, public_key, private_key) as cur_shell:
-            stdin, stdout, stderr = cur_shell.exec("pwd")
-            print(stdout.readlines())
+            username, password, public_key, private_key = selected_vm.systems[0].getCredentialValues(
+            )
+
+            print(ip, username, password, public_key, private_key)
+
+            with SSHHandler(ip, user, username, password, public_key, private_key) as cur_shell:
+                stdin, stdout, stderr = cur_shell.exec("pwd")
+                print(stdout.readlines())
+        else:
+            show(
+                colored("[Discovery]", "magenta"),
+                colored("[{}]".format(self.__in_name), "white"),
+                colored("[{}]".format(self.__target_name), "red"),
+                colored("[vm_{}]".format(vm_number), "green"),
+                colored("[is not ready...]", "yellow")
+            )
 
     @property
     def in_id(self):
