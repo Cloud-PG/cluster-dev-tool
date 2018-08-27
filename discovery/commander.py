@@ -469,6 +469,6 @@ class CommanderIM(Commander):
                 colored("[\n{}\n]".format(result), "blue")
             )
 
-        if contmsg is None:
+        if not contmsg:
             radl_obj = parse_radl(res.text)
             return radl_obj
