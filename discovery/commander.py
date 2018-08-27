@@ -4,6 +4,7 @@ import socket
 import tempfile
 from abc import ABCMeta, abstractmethod
 from getpass import getpass
+from time import sleep
 
 import paramiko
 import requests
@@ -47,6 +48,7 @@ class SSHHandler(object):
             private_key) if private_key else private_key
         self.__ssh = paramiko.SSHClient()
         self.__ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        self.__channel = None
 
     def __connect(self):
         show(
@@ -81,46 +83,64 @@ class SSHHandler(object):
     def exec(self, command):
         stdin, stdout, stderr = self.__ssh.exec_command(command)
         return stdin, stdout, stderr
-    
-    @staticmethod
-    def __recv(channel, timeout=0.5):
-        channel.settimeout(timeout)
+
+    def __recv(self, timeout=1.0, size=1024, attempts=5):
+        self.__channel.settimeout(timeout)
         buffer = b""
-        try:
-            while True:
-                buffer += channel.recv(1024)
-        except socket.timeout:
-            pass
-        
+        for _ in range(attempts):
+            try:
+                while self.__channel.recv_ready():
+                    buffer += self.__channel.recv(size)
+            except socket.timeout:
+                pass
+            sleep(0.16)
+
         return buffer.decode("utf-8")
-    
-    @staticmethod
-    def __prepare(channel):
+
+    def jump(self, ip, username, password=None, public_key=None, private_key=None):
+        if self.__channel is None:
+            self.__channel = self.__ssh.invoke_shell()
+        commands = [
+            "cat << EOF > p.key\n{}\nEOF\n".format(private_key),
+            "chmod 0600 p.key\n",
+            "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i p.key {}@{}\n".format(
+                username, ip)
+        ]
+        while len(commands) > 0:
+            while not self.__channel.send_ready():
+                pass
+            cur_command = commands.pop(0)
+            self.__channel.sendall(cur_command)
+
+    def __prepare(self):
         """Superuser escalation and open bash."""
-        channel.send("sudo -s\n")
-        channel.send("bash\n")
+        self.__channel.sendall("sudo -s\n")
+        self.__channel.sendall("bash\n")
 
     def invoke_shell(self):
         run = True
-        channel = self.__ssh.invoke_shell()
-        print(self.__recv(channel))
-        self.__prepare(channel)
-        print(self.__recv(channel))
+        if self.__channel is None:
+            self.__channel = self.__ssh.invoke_shell()
+        print(self.__recv())
+        self.__prepare()
+        print(self.__recv())
 
         while run:
             input_ = ""
             try:
-                input_ = input("[{}@{}][Insert command]:".format(self.__username, self.__ip))
+                input_ = input(colored("[Insert command]:", "magenta"))
             except KeyboardInterrupt:
-                input_ = "exit"
-            channel.send(input_ + "\n")
-            if input_ == "exit":
+                input_ = "discovery_exit"
+            self.__channel.sendall(input_ + "\n")
+            if input_ == "discovery_exit":
                 run = False
             else:
-                print(self.__recv(channel))
-        
-        print("\033[2K\r[{}@{}][Session DONE]".format(self.__username, self.__ip))
-        channel.close()
+                print(self.__recv())
+
+        show(
+            colored("\033[2K\r[Session DONE]", "magenta")
+        )
+        self.__channel.close()
 
 
 class Commander(metaclass=ABCMeta):
@@ -240,31 +260,19 @@ class CommanderIM(Commander):
         else:
             return system.getIfaceIP(0)
 
-    def ssh(self, vm_number, bastion=None, use_bastion=False):
+    def __check_vm_number(self, num):
         vm_info = self.info(show_output=False)
         max_vm_num_id = max(vm_info)
 
-        assert vm_number >= 0 and vm_number <= max_vm_num_id, "VM id number out of index"
+        assert num >= 0 and num <= max_vm_num_id, "VM id number out of index"
 
+    def __get_vm_credentials(self, vm_number):
         selected_vm = self.vm(vm_number, show_output=False)
 
         if selected_vm:
             ip = self.__select_interface(selected_vm.systems[0], vm_number)
-
-            (username, password, public_key,
-             private_key) = selected_vm.systems[0].getCredentialValues()
-
-            show(
-                colored("[Discovery]", "magenta"),
-                colored("[{}]".format(self.__in_name), "white"),
-                colored("[{}]".format(self.__target_name), "red"),
-                colored("[vm_{}]".format(vm_number), "green"),
-                colored("[Open ssh]", "yellow")
-            )
-
-            with SSHHandler(ip, username, password, public_key, private_key) as cur_shell:
-                cur_shell.invoke_shell()
-
+            credentials = selected_vm.systems[0].getCredentialValues()
+            return (ip, credentials)
         else:
             show(
                 colored("[Discovery]", "magenta"),
@@ -273,6 +281,37 @@ class CommanderIM(Commander):
                 colored("[vm_{}]".format(vm_number), "green"),
                 colored("[is not ready...]", "yellow")
             )
+
+    def ssh(self, mode, vm_number, bastion=None):
+        self.__check_vm_number(vm_number)
+        ip, (username, password, public_key,
+             private_key) = self.__get_vm_credentials(vm_number)
+
+        if mode == 'direct':
+            show(
+                colored("[Discovery]", "magenta"),
+                colored("[{}]".format(self.__in_name), "white"),
+                colored("[{}]".format(self.__target_name), "red"),
+                colored("[vm_{}]".format(vm_number), "green"),
+                colored("[Open ssh]", "yellow")
+            )
+            with SSHHandler(ip, username, password, public_key, private_key) as cur_shell:
+                cur_shell.invoke_shell()
+        elif mode == 'bastion':
+            with SSHHandler(bastion['addr'], bastion['username']) as cur_shell:
+                pass
+        else:
+            proxy_vm_id = int(mode)
+            proxy_ip, (proxy_username, proxy_password, proxy_public_key,
+                       proxy_private_key) = self.__get_vm_credentials(proxy_vm_id)
+            if proxy_private_key:
+                with SSHHandler(proxy_ip, proxy_username, proxy_password, proxy_public_key,
+                                proxy_private_key) as cur_shell:
+                    cur_shell.jump(ip, username, password,
+                                   public_key, private_key)
+                    cur_shell.invoke_shell()
+            else:
+                raise Exception("Case not implemented yet... :P")
 
     @property
     def in_id(self):

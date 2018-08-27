@@ -123,10 +123,11 @@ def main():
     parser_infrastructure_ssh = sub_parser_infrastructure.add_parser(
         'ssh', help='Use ssh commands')
     parser_infrastructure_ssh.add_argument(
+        'parser_infrastructure_ssh_mode', metavar="connection_mode",
+        type=str, help='How do you want to connect to the vm. Possible values are: "direct", "bastion", "vm_number".')
+    parser_infrastructure_ssh.add_argument(
         'parser_infrastructure_ssh_vm_number', metavar="vm_number",
         type=int, help='Number of vm to be invoked.')
-    parser_infrastructure_ssh.add_argument('--use-bastion', metavar="use_bastion", default=False,
-                                           type=bool, help='Tell to ssh to use the bastion host')
 
     # sub command [radl, state, contmsg, outputs, data]
     for property_ in ["radl", "state", "contmsg", "outputs", "data"]:
@@ -237,8 +238,8 @@ def main():
                     ctx = get_context(
                         cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
                     ctx.ssh(
+                        args.parser_infrastructure_ssh_mode,
                         args.parser_infrastructure_ssh_vm_number,
-                        use_bastion=args.use_bastion,
                         bastion=cur_commander_info['bastion'] if 'bastion' in cur_commander_info else None
                     )
                 else:
