@@ -1,6 +1,7 @@
 import configparser
 import json
 import socket
+import tempfile
 from abc import ABCMeta, abstractmethod
 from getpass import getpass
 
@@ -14,14 +15,36 @@ from .utils import (extract_in_id, filter_output, print_json_data, print_list,
                     print_right_shift, show)
 
 
+class KeyFile(object):
+
+    def __init__(self, content):
+        self.__file = tempfile.NamedTemporaryFile(mode="w")
+        self.__file.write(content)
+
+    @property
+    def name(self):
+        return self.__file.name
+
+    def __enter__(self):
+        self.__file.seek(0)
+        return self.__file
+
+    def __exit__(self, type_, value, traceback):
+        pass
+
+    def __del__(self):
+        self.__file.close()
+
+
 class SSHHandler(object):
 
-    def __init__(self, ip, user, username, password=None, public_key=None, private_key=None):
+    def __init__(self, ip, username, password=None, public_key=None, private_key=None):
         self.__ip = ip
-        self.__user = user
+        self.__username = username
         self.__password = password
-        self.__public_key = public_key
-        self.__private_key = private_key
+        self.__public_key = KeyFile(public_key) if public_key else public_key
+        self.__private_key = KeyFile(
+            private_key) if private_key else private_key
         self.__ssh = paramiko.SSHClient()
         self.__ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
@@ -33,15 +56,16 @@ class SSHHandler(object):
         )
         if not self.__private_key and not self.__password:
             password = getpass(
-                "[Insert User {} password]...".format(self.__user))
+                "[Insert User {} password]...".format(self.__username))
             self.__ssh.connect(
-                self.__ip, username=self.__user, password=password)
+                self.__ip, username=self.__username, password=password)
         elif self.__password:
-            self.__ssh.connect(self.__ip, username=self.__user,
+            self.__ssh.connect(self.__ip, username=self.__username,
                                password=self.__password)
         else:
-            self.__ssh.connect(self.__ip, username=self.__user,
-                               pkey=self.__private_key)
+            self.__ssh.connect(self.__ip, username=self.__username,
+                               key_filename=self.__private_key.name,
+                               look_for_keys=False)
 
     def __enter__(self):
         self.__connect()
@@ -50,9 +74,53 @@ class SSHHandler(object):
     def __exit__(self, type_, value, traceback):
         self.__ssh.close()
 
+    def __del__(self):
+        del self.__public_key
+        del self.__private_key
+
     def exec(self, command):
         stdin, stdout, stderr = self.__ssh.exec_command(command)
         return stdin, stdout, stderr
+    
+    @staticmethod
+    def __recv(channel, timeout=0.5):
+        channel.settimeout(timeout)
+        buffer = b""
+        try:
+            while True:
+                buffer += channel.recv(1024)
+        except socket.timeout:
+            pass
+        
+        return buffer.decode("utf-8")
+    
+    @staticmethod
+    def __prepare(channel):
+        """Superuser escalation and open bash."""
+        channel.send("sudo -s\n")
+        channel.send("bash\n")
+
+    def invoke_shell(self):
+        run = True
+        channel = self.__ssh.invoke_shell()
+        print(self.__recv(channel))
+        self.__prepare(channel)
+        print(self.__recv(channel))
+
+        while run:
+            input_ = ""
+            try:
+                input_ = input("[{}@{}][Insert command]:".format(self.__username, self.__ip))
+            except KeyboardInterrupt:
+                input_ = "exit"
+            channel.send(input_ + "\n")
+            if input_ == "exit":
+                run = False
+            else:
+                print(self.__recv(channel))
+        
+        print("\033[2K\r[{}@{}][Session DONE]".format(self.__username, self.__ip))
+        channel.close()
 
 
 class Commander(metaclass=ABCMeta):
@@ -140,9 +208,9 @@ class CommanderIM(Commander):
         Returns: 
             str, the interface ip
         """
-        print(system)
-        print(system.getNumNetworkIfaces())
-        print(system.getRequestedNameIface())
+        # print(system)
+        # print(system.getNumNetworkIfaces())
+        # print(system.getRequestedNameIface())
 
         num_interfaces = system.getNumNetworkIfaces()
 
@@ -172,7 +240,7 @@ class CommanderIM(Commander):
         else:
             return system.getIfaceIP(0)
 
-    def ssh(self, url, user, vm_number, use_bastion):
+    def ssh(self, vm_number, bastion=None, use_bastion=False):
         vm_info = self.info(show_output=False)
         max_vm_num_id = max(vm_info)
 
@@ -183,14 +251,20 @@ class CommanderIM(Commander):
         if selected_vm:
             ip = self.__select_interface(selected_vm.systems[0], vm_number)
 
-            username, password, public_key, private_key = selected_vm.systems[0].getCredentialValues(
+            (username, password, public_key,
+             private_key) = selected_vm.systems[0].getCredentialValues()
+
+            show(
+                colored("[Discovery]", "magenta"),
+                colored("[{}]".format(self.__in_name), "white"),
+                colored("[{}]".format(self.__target_name), "red"),
+                colored("[vm_{}]".format(vm_number), "green"),
+                colored("[Open ssh]", "yellow")
             )
 
-            print(ip, username, password, public_key, private_key)
+            with SSHHandler(ip, username, password, public_key, private_key) as cur_shell:
+                cur_shell.invoke_shell()
 
-            with SSHHandler(ip, user, username, password, public_key, private_key) as cur_shell:
-                stdin, stdout, stderr = cur_shell.exec("pwd")
-                print(stdout.readlines())
         else:
             show(
                 colored("[Discovery]", "magenta"),

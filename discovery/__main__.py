@@ -234,22 +234,13 @@ def main():
                 cur_commander = inventory['infrastructures'][cur_target]['commander']
                 if cur_commander in inventory['commanders']:
                     cur_commander_info = inventory['commanders'][cur_commander]
-                    if 'bastion' in cur_commander_info:
-                        ctx = get_context(
-                            cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
-                        ctx.ssh(
-                            cur_commander_info['bastion']['url'],
-                            cur_commander_info['bastion']['user'],
-                            args.parser_infrastructure_ssh_vm_number,
-                            args.use_bastion
-                        )
-                    else:
-                        show(
-                            colored("[Discovery]", "magenta"),
-                            colored("[Commander]", "white"),
-                            colored("[{}][have no bastion]".format(
-                                cur_commander), "red")
-                        )
+                    ctx = get_context(
+                        cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
+                    ctx.ssh(
+                        args.parser_infrastructure_ssh_vm_number,
+                        use_bastion=args.use_bastion,
+                        bastion=cur_commander_info['bastion'] if 'bastion' in cur_commander_info else None
+                    )
                 else:
                     show(
                         colored("[Discovery]", "magenta"),
