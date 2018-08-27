@@ -34,11 +34,14 @@ class SSHHandler(object):
         if not self.__private_key and not self.__password:
             password = getpass(
                 "[Insert User {} password]...".format(self.__user))
-            self.__ssh.connect(self.__ip, username=self.__user, password=password)
+            self.__ssh.connect(
+                self.__ip, username=self.__user, password=password)
         elif self.__password:
-            self.__ssh.connect(self.__ip, username=self.__user, password=self.__password)
+            self.__ssh.connect(self.__ip, username=self.__user,
+                               password=self.__password)
         else:
-            self.__ssh.connect(self.__ip, username=self.__user, pkey=self.__private_key)
+            self.__ssh.connect(self.__ip, username=self.__user,
+                               pkey=self.__private_key)
 
     def __enter__(self):
         self.__connect()
@@ -158,7 +161,8 @@ class CommanderIM(Commander):
                 colored("[interfaces]", "green"),
                 colored("[\n{}\n]".format(
                     print_right_shift(
-                        "\n".join(["-({}) {}".format(idx, elm) for idx, elm in enumerate(interfaces)])
+                        "\n".join(["-({}) {}".format(idx, elm)
+                                   for idx, elm in enumerate(interfaces)])
                     )
                 ), "blue")
             )
@@ -168,8 +172,6 @@ class CommanderIM(Commander):
         else:
             return system.getIfaceIP(0)
 
-
-
     def ssh(self, url, user, vm_number, use_bastion):
         vm_info = self.info(show_output=False)
         max_vm_num_id = max(vm_info)
@@ -178,14 +180,14 @@ class CommanderIM(Commander):
 
         selected_vm = self.vm(vm_number, show_output=False)
         ip = self.__select_interface(selected_vm.systems[0], vm_number)
-        username, password, public_key, private_key = selected_vm.systems[0].getCredentialValues()
+        username, password, public_key, private_key = selected_vm.systems[0].getCredentialValues(
+        )
 
         print(ip, username, password, public_key, private_key)
 
         with SSHHandler(ip, user, username, password, public_key, private_key) as cur_shell:
-                stdin, stdout, stderr = cur_shell.exec("pwd")
-                print(stdout.readlines())
-            
+            stdin, stdout, stderr = cur_shell.exec("pwd")
+            print(stdout.readlines())
 
     @property
     def in_id(self):
@@ -427,7 +429,7 @@ class CommanderIM(Commander):
                 colored("[\n{}\n]".format(result), "blue")
             )
 
-    def vm(self, id_, show_output=True):
+    def vm(self, id_, contmsg=False, show_output=True):
         """Get information about the selected vm in the current infrastructure.
 
         Print vm info and return radl object.
@@ -435,13 +437,17 @@ class CommanderIM(Commander):
         token = self.__auth.token(show_output=show_output)
         self.__header_compose(token)
 
+        if not contmsg:
+            tmp = [self.in_id, 'vms', str(id_)]
+        else:
+            tmp = [self.in_id, 'vms', str(id_), 'contmsg']
+
         res = requests.get(
-            self.__url_compose(self.in_id, 'vms', str(id_)),
+            self.__url_compose(*tmp),
             headers=self.__headers
         )
 
         result = self.__prepare_result(res)
-        radl_obj = parse_radl(res.text)
 
         if show_output:
             show(
@@ -452,4 +458,6 @@ class CommanderIM(Commander):
                 colored("[\n{}\n]".format(result), "blue")
             )
 
-        return radl_obj
+        if contmsg is None:
+            radl_obj = parse_radl(res.text)
+            return radl_obj
