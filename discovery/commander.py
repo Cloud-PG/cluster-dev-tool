@@ -58,7 +58,7 @@ class SSHHandler(object):
         )
         if not self.__private_key and not self.__password:
             password = getpass(
-                "[Insert User {} password]...".format(self.__username))
+                "[Insert User {} password...]".format(self.__username))
             self.__ssh.connect(
                 self.__ip, username=self.__username, password=password)
         elif self.__password:
@@ -367,7 +367,7 @@ class CommanderIM(Commander):
                 colored("[Discovery]", "magenta"),
                 colored("[{}]".format(self.__in_name), "white"),
                 colored("[{}]".format(self.__target_name), "red"),
-                colored("[CREATING] ...", "yellow")
+                colored("[CREATING...]", "yellow")
             )
 
         with open(data_path, 'rb') as template_file:
@@ -403,7 +403,7 @@ class CommanderIM(Commander):
                 colored("[Discovery]", "magenta"),
                 colored("[{}]".format(self.__in_name), "white"),
                 colored("[{}]".format(self.__target_name), "red"),
-                colored("[DELETING] ...", "yellow")
+                colored("[DELETING...]", "yellow")
             )
 
         res = requests.delete(
