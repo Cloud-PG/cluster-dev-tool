@@ -118,11 +118,22 @@ class IAM(Auth):
             'scope': self.scope
         })
         if show_output:
-            show(
-                colored("[Discovery]", "magenta"),
-                colored("[IAM]", "white"),
-                colored("[Request token](✓)", "green")
-            )
+            if res.status_code == 200:
+                show(
+                    colored("[Discovery]", "magenta"),
+                    colored("[IAM]", "white"),
+                    colored("[Request token](✓)", "green")
+                )
+            else:
+                show(
+                    colored("[Discovery]", "magenta"),
+                    colored("[IAM]", "white"),
+                    colored("[Request token](✗)", "red"),
+                    colored("[status code]({})".format(
+                        res.status_code), "yellow")
+                )
+                exit()
+
         self.session = res.json()
         if self.session.get("error", False):
             show(
