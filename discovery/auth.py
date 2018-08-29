@@ -8,7 +8,7 @@ import jwt
 import requests
 from termcolor import colored
 
-from .utils import show
+from .utils import print_right_shift, show
 
 __all__ = ['IAM']
 
@@ -130,7 +130,8 @@ class IAM(Auth):
                     colored("[IAM]", "white"),
                     colored("[Request token](✗)", "red"),
                     colored("[status code]({})".format(
-                        res.status_code), "yellow")
+                        res.status_code), "yellow"),
+                    colored("[\n{}\n]".format(print_right_shift(res.text)), "blue")
                 )
                 exit()
 
@@ -139,7 +140,8 @@ class IAM(Auth):
             show(
                 colored("[Discovery]", "magenta"),
                 colored("[IAM]", "white"),
-                colored("[{}](✗)".format(
+                colored("[Request token](✗)", "red"),
+                colored("[\n{}\n]".format(
                     self.session.get("error_description")), "red")
             )
             return self.__get_token()
