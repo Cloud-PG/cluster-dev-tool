@@ -118,7 +118,7 @@ def main():
         type=int, help='Number of vm to be inspected.')
     parser_infrastructure_vm.add_argument(
         '--vm-property', metavar="vm_property_name", default='None',
-        type=str, choices=['contmsg'], help='Get a specific property of the selected vm.')
+        type=str, choices=['contmsg', 'pkey', 'user'], help='Get a specific property of the selected vm.')
     # ssh
     parser_infrastructure_ssh = sub_parser_infrastructure.add_parser(
         'ssh', help='Use ssh commands')
@@ -198,7 +198,7 @@ def main():
                     method_to_call(output_filter=args.filter)
                 elif 'parser_infrastructure_vm_number' in args:  # for 'vm' command
                     method_to_call(args.parser_infrastructure_vm_number,
-                                   contmsg=args.vm_property != 'None')
+                                   property_=args.vm_property)
                 else:
                     method_to_call()
             elif args.sub_command_infrastructure == 'show':

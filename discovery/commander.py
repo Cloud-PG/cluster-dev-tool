@@ -446,7 +446,7 @@ class CommanderIM(Commander):
         self.__property_name('data', show_output=show_output,
                              output_filter=output_filter)
 
-    def __prepare_result(self, res, output_filter=None, get_content=False):
+    def __prepare_result(self, res, output_filter=None, get_content=False, shift=True):
         try:
             content = res.json()
         except json.decoder.JSONDecodeError:
@@ -461,7 +461,8 @@ class CommanderIM(Commander):
         if output_filter:
             result = filter_output(result, output_filter)
 
-        result = print_right_shift(result)
+        if shift:
+            result = print_right_shift(result)
 
         if get_content:
             return content, result
@@ -553,7 +554,7 @@ class CommanderIM(Commander):
                 colored("[\n{}\n]".format(result), "blue")
             )
 
-    def vm(self, id_, contmsg=False, show_output=True):
+    def vm(self, id_, property_=None, show_output=True):
         """Get information about the selected vm in the current infrastructure.
 
         Print vm info and return radl object.
@@ -561,7 +562,7 @@ class CommanderIM(Commander):
         token = self.__auth.token(show_output=show_output)
         self.__header_compose(token)
 
-        if not contmsg:
+        if property_ != 'contmsg':
             tmp = [self.in_id, 'vms', str(id_)]
         else:
             tmp = [self.in_id, 'vms', str(id_), 'contmsg']
@@ -571,17 +572,27 @@ class CommanderIM(Commander):
             headers=self.__headers
         )
 
-        result = self.__prepare_result(res)
+        if property_ != 'contmsg':
+            radl_obj = parse_radl(res.text)
 
         if show_output:
+            if property_ == 'pkey':
+                _, _, _, pkey = radl_obj.systems[0].getCredentialValues()
+                result = pkey
+            elif property_ == 'user':
+                user, _, _, _ = radl_obj.systems[0].getCredentialValues()
+                result = user
+            else:
+                result = self.__prepare_result(res)
+                result = "\n{}\n".format(result)
+
             show(
                 colored("[Discovery]", "magenta"),
                 colored("[{}]".format(self.__in_name), "white"),
                 colored("[{}]".format(self.__target_name), "red"),
                 colored("[info]", "green"),
-                colored("[\n{}\n]".format(result), "blue")
+                colored("[{}]".format(result), "blue")
             )
 
-        if not contmsg:
-            radl_obj = parse_radl(res.text)
+        if property_ != 'contmsg':
             return radl_obj
