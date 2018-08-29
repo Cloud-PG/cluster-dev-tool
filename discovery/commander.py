@@ -47,7 +47,7 @@ class SSHHandler(object):
         self.__private_key = KeyFile(
             private_key) if private_key else private_key
         self.__ssh = paramiko.SSHClient()
-        self.__ssh.set_missing_host_key_policy(paramiko.MissingHostKeyPolicy())
+        self.__ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         self.__channel = None
 
     def __connect(self):
