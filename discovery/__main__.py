@@ -153,7 +153,14 @@ def main():
             parser.print_help()
     elif args.sub_command == "infrastructure":
         cur_target = args.infrastructure_target
-        if cur_target == "list":
+        if cur_target in inventory['lock']:
+            show(
+                colored("[Discovery]", "magenta"),
+                colored("[Infrastructure]", "white"),
+                colored("[{}][LOCKED]".format(cur_target), "red")
+            )
+            exit()
+        elif cur_target == "list":
             if not command_show(args.sub_command, 'all', inventory['infrastructures']):
                 parser.print_help()
         elif cur_target == "remote":
@@ -267,7 +274,8 @@ def main():
                 show(
                     colored("[Discovery]", "magenta"),
                     colored("[Infrastructure]", "white"),
-                    colored("[{}][not a valid command...]".format(cur_target), "red")
+                    colored("[{}][not a valid command...]".format(
+                        cur_target), "red")
                 )
                 parser.print_help()
     else:
