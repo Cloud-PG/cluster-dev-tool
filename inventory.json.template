@@ -1,4 +1,8 @@
 {
+    "default": {
+        "commander": "my_commander"
+    },
+    "lock": ["my-cluster"],
     "commanders": {
         "my_commander": {
             "type": "",
