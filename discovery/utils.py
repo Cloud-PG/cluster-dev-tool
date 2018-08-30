@@ -84,6 +84,12 @@ def filter_output(text, filter_type, max_error_lines=8, max_lenght_error_line=10
                     else:
                         in_error = False
         return "\n".join(output)
+    elif filter_type.find("infrastructure_ids") != -1:
+        tmp = []
+        for line in text.strip().split("\n"):
+            if line.find("http") != -1:
+                tmp.append("- {}".format(extract_in_id(line.strip())))
+        return "\n".join(tmp)
     else:
         raise Exception(
             "Filter '{}' is not implemented...".format(filter_type))

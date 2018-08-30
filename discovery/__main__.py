@@ -35,7 +35,7 @@ def get_context(target, infrastructure, commanders):
 
 
 def command_show(sub_command, target, dict_):
-    if target == 'all':
+    if target == 'all' or target == 'None':
         show(
             colored("[Discovery]", "magenta"),
             colored("[{}]".format(sub_command), "cyan", attrs=['bold']),
@@ -87,13 +87,10 @@ def main():
     parser_infrastructure = subparsers.add_parser(
         'infrastructure', help='Explore inventory infrastructure')
     parser_infrastructure.add_argument(
-        'infrastructure_target', metavar="target",
+        'infrastructure_target', metavar="target", default="None",
         type=str, help='Target infrastructures. It\'s the name given to that infrastructure.')
     sub_parser_infrastructure = parser_infrastructure.add_subparsers(
         dest="sub_command_infrastructure")
-    # show
-    parser_infrastructure_show = sub_parser_infrastructure.add_parser(
-        'show', help='Get info about infrastructures in the inventory')
     # info
     parser_infrastructure_info = sub_parser_infrastructure.add_parser(
         'info', help='Get info about the infrastructure')
@@ -136,7 +133,7 @@ def main():
         cur_parser_infrastructure_property = sub_parser_infrastructure.add_parser(
             property_, help='Property {} of the infrastructures'.format(property_))
         cur_parser_infrastructure_property.add_argument('--filter', metavar="filter",
-                                                        type=str, choices=['ansible_errors', 'squeezed_ansible_errors'], help='Filter for command {}'.format(property_))
+                                                        type=str, choices=['ansible_errors', 'squeezed_ansible_errors', 'infrastructure_ids'], help='Filter for command {}'.format(property_))
 
     args, _ = parser.parse_known_args()
 
@@ -156,109 +153,123 @@ def main():
             parser.print_help()
     elif args.sub_command == "infrastructure":
         cur_target = args.infrastructure_target
-        if args.sub_command_infrastructure == 'create':
-            if args.parser_infrastructure_create_target_commander in inventory['commanders']:
-                if cur_target not in inventory['infrastructures']:
-                    ctx = get_context(cur_target, {
-                        'commander': args.parser_infrastructure_create_target_commander,
-                        'id': None
-                    }, inventory['commanders'])
-                    ctx.create(
-                        cur_target, args.parser_infrastructure_create_target_data_path)
-                    inventory['infrastructures'][cur_target] = {
-                        'commander': args.parser_infrastructure_create_target_commander,
-                        'id': ctx.in_id
-                    }
-                    with open(args.inventory, 'w') as inventory_file:
-                        json.dump(inventory, inventory_file, indent=2)
-                    show(
-                        colored("[Discovery]", "magenta"),
-                        colored("[Infrastructure]", "white"),
-                        colored("[{}][successfully created. Inventory is updated...]".format(
-                            cur_target), "green")
-                    )
-                else:
-                    show(
-                        colored("[Discovery]", "magenta"),
-                        colored("[Commander]", "white"),
-                        colored("[{}][already exists...]".format(
-                            args.parser_infrastructure_create_target_commander), "red")
-                    )
-            else:
-                show(
-                    colored("[Discovery]", "magenta"),
-                    colored("[Commander]", "white"),
-                    colored("[{}][not found...]".format(
-                        args.parser_infrastructure_create_target_commander), "red")
-                )
-        elif cur_target in inventory['infrastructures']:
-            if args.sub_command_infrastructure in ['info', 'radl', 'state', 'contmsg', 'outputs', 'data', 'reconfigure', 'vm']:
-                ctx = get_context(
-                    cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
-                method_to_call = getattr(ctx, args.sub_command_infrastructure)
-                if 'filter' in args:  # for 'radl', 'state', 'contmsg', 'outputs', 'data' commands
-                    method_to_call(output_filter=args.filter)
-                elif 'parser_infrastructure_vm_number' in args:  # for 'vm' command
-                    method_to_call(args.parser_infrastructure_vm_number,
-                                   property_=args.vm_property)
-                else:
-                    method_to_call()
-            elif args.sub_command_infrastructure == 'show':
-                if not command_show(args.sub_command, cur_target, inventory['infrastructures']):
-                    parser.print_help()
-            elif args.sub_command_infrastructure == 'delete':
-                if cur_target in inventory['infrastructures']:
-                    ctx = get_context(
-                        cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
-                    if ctx.delete():
-                        del inventory['infrastructures'][cur_target]
+        if cur_target == "list":
+            if not command_show(args.sub_command, 'all', inventory['infrastructures']):
+                parser.print_help()
+        elif cur_target == "remote":
+            ctx = get_context(cur_target, {
+                'commander': inventory['default']['commander'],
+                'id': None
+            }, inventory['commanders'])
+            ctx.infrastructures()
+        else:
+            if args.sub_command_infrastructure == 'create':
+                if args.parser_infrastructure_create_target_commander in inventory['commanders']:
+                    if cur_target not in inventory['infrastructures']:
+                        ctx = get_context(cur_target, {
+                            'commander': args.parser_infrastructure_create_target_commander,
+                            'id': None
+                        }, inventory['commanders'])
+                        ctx.create(
+                            cur_target, args.parser_infrastructure_create_target_data_path)
+                        inventory['infrastructures'][cur_target] = {
+                            'commander': args.parser_infrastructure_create_target_commander,
+                            'id': ctx.in_id
+                        }
                         with open(args.inventory, 'w') as inventory_file:
                             json.dump(inventory, inventory_file, indent=2)
                         show(
                             colored("[Discovery]", "magenta"),
                             colored("[Infrastructure]", "white"),
-                            colored("[{}][successfully deleted. Inventory is updated...]".format(
+                            colored("[{}][successfully created. Inventory is updated...]".format(
                                 cur_target), "green")
                         )
                     else:
                         show(
                             colored("[Discovery]", "magenta"),
-                            colored("[Infrastructure]", "white"),
-                            colored("[{}][was not deleted successfully...]".format(
-                                cur_target), "red")
+                            colored("[Commander]", "white"),
+                            colored("[{}][already exists...]".format(
+                                args.parser_infrastructure_create_target_commander), "red")
                         )
-                else:
-                    show(
-                        colored("[Discovery]", "magenta"),
-                        colored("[Infrastructure]", "white"),
-                        colored("[{}][not found...]".format(cur_target), "red")
-                    )
-            elif args.sub_command_infrastructure == 'ssh':
-                cur_commander = inventory['infrastructures'][cur_target]['commander']
-                if cur_commander in inventory['commanders']:
-                    cur_commander_info = inventory['commanders'][cur_commander]
-                    ctx = get_context(
-                        cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
-                    ctx.ssh(
-                        args.parser_infrastructure_ssh_mode,
-                        args.parser_infrastructure_ssh_vm_number,
-                        bastion=cur_commander_info['bastion'] if 'bastion' in cur_commander_info else None
-                    )
                 else:
                     show(
                         colored("[Discovery]", "magenta"),
                         colored("[Commander]", "white"),
                         colored("[{}][not found...]".format(
-                            cur_commander), "red")
+                            args.parser_infrastructure_create_target_commander), "red")
                     )
+            elif cur_target in inventory['infrastructures']:
+                if args.sub_command_infrastructure in ['info', 'radl', 'state', 'contmsg', 'outputs', 'data', 'reconfigure', 'vm']:
+                    ctx = get_context(
+                        cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
+                    method_to_call = getattr(
+                        ctx, args.sub_command_infrastructure)
+                    if 'filter' in args:  # for 'radl', 'state', 'contmsg', 'outputs', 'data' commands
+                        method_to_call(output_filter=args.filter)
+                    elif 'parser_infrastructure_vm_number' in args:  # for 'vm' command
+                        method_to_call(args.parser_infrastructure_vm_number,
+                                       property_=args.vm_property)
+                    else:
+                        method_to_call()
+                elif args.sub_command_infrastructure == 'show':
+                    if not command_show(args.sub_command, cur_target, inventory['infrastructures']):
+                        parser.print_help()
+                elif args.sub_command_infrastructure == 'delete':
+                    if cur_target in inventory['infrastructures']:
+                        ctx = get_context(
+                            cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
+                        if ctx.delete():
+                            del inventory['infrastructures'][cur_target]
+                            with open(args.inventory, 'w') as inventory_file:
+                                json.dump(inventory, inventory_file, indent=2)
+                            show(
+                                colored("[Discovery]", "magenta"),
+                                colored("[Infrastructure]", "white"),
+                                colored("[{}][successfully deleted. Inventory is updated...]".format(
+                                    cur_target), "green")
+                            )
+                        else:
+                            show(
+                                colored("[Discovery]", "magenta"),
+                                colored("[Infrastructure]", "white"),
+                                colored("[{}][was not deleted successfully...]".format(
+                                    cur_target), "red")
+                            )
+                    else:
+                        show(
+                            colored("[Discovery]", "magenta"),
+                            colored("[Infrastructure]", "white"),
+                            colored("[{}][not found...]".format(
+                                cur_target), "red")
+                        )
+                elif args.sub_command_infrastructure == 'ssh':
+                    cur_commander = inventory['infrastructures'][cur_target]['commander']
+                    if cur_commander in inventory['commanders']:
+                        cur_commander_info = inventory['commanders'][cur_commander]
+                        ctx = get_context(
+                            cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
+                        ctx.ssh(
+                            args.parser_infrastructure_ssh_mode,
+                            args.parser_infrastructure_ssh_vm_number,
+                            bastion=cur_commander_info['bastion'] if 'bastion' in cur_commander_info else None
+                        )
+                    else:
+                        show(
+                            colored("[Discovery]", "magenta"),
+                            colored("[Commander]", "white"),
+                            colored("[{}][not found...]".format(
+                                cur_commander), "red")
+                        )
+                else:
+                    if not command_show(args.sub_command, cur_target, inventory['infrastructures']):
+                        parser.print_help()
             else:
+                show(
+                    colored("[Discovery]", "magenta"),
+                    colored("[Infrastructure]", "white"),
+                    colored("[{}][not a valid command...]".format(cur_target), "red")
+                )
                 parser.print_help()
-        else:
-            show(
-                colored("[Discovery]", "magenta"),
-                colored("[Infrastructure]", "white"),
-                colored("[{}][not found...]".format(cur_target), "red")
-            )
     else:
         parser.print_help()
 

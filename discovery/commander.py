@@ -338,7 +338,7 @@ class CommanderIM(Commander):
     def in_id(self):
         if self.__in_id is not None:
             return self.__in_id
-        raise Exception("You have no ID yet for this infrastructure...")
+        raise Exception("You have no ID yet for this commander...")
 
     def __url_compose(self, *args):
         if len(args):
@@ -617,3 +617,24 @@ class CommanderIM(Commander):
 
         if property_ != 'contmsg':
             return radl_obj
+    
+    def infrastructures(self, show_output=True):
+        """Get all infrastructure ids which this commander has access."""
+        token = self.__auth.token(show_output=show_output)
+        self.__header_compose(token)
+
+        res = requests.get(
+            self.__url_compose("infrastructures"),
+            headers=self.__headers
+        )
+
+        result = self.__prepare_result(res, output_filter="infrastructure_ids")
+
+        if show_output:
+            show(
+                colored("[Discovery]", "magenta"),
+                colored("[{}]".format(self.__in_name), "white"),
+                colored("[infrastructures]", "red"),
+                colored("[ids]", "green"),
+                colored("[\n{}\n]".format(result), "blue")
+            )
