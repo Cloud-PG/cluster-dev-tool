@@ -21,13 +21,13 @@ class KeyFile(object):
     def __init__(self, content):
         self.__file = tempfile.NamedTemporaryFile(mode="w")
         self.__file.write(content)
+        self.__file.seek(0)
 
     @property
     def name(self):
         return self.__file.name
 
     def __enter__(self):
-        self.__file.seek(0)
         return self.__file
 
     def __exit__(self, type_, value, traceback):
@@ -65,9 +65,11 @@ class SSHHandler(object):
             self.__ssh.connect(self.__ip, username=self.__username,
                                password=self.__password)
         else:
+            tmp_key = paramiko.RSAKey.from_private_key_file(self.__private_key.name)
             self.__ssh.connect(self.__ip, username=self.__username,
-                               key_filename=self.__private_key.name,
-                               look_for_keys=False)
+                               pkey=tmp_key,
+                               look_for_keys=False,
+                               allow_agent=False)
 
     def __enter__(self):
         self.__connect()
