@@ -90,16 +90,17 @@ class SSHHandler(object):
         stdin, stdout, stderr = self.__ssh.exec_command(command)
         return stdin, stdout, stderr
 
-    def __recv(self, timeout=1.0, size=1024, attempts=5):
+    def __recv(self, timeout=1.0, size=1024, attempts=5, sleep_time=0.2):
         self.__channel.settimeout(timeout)
         buffer = b""
         for _ in range(attempts):
             try:
                 while self.__channel.recv_ready():
+                    sleep(sleep_time)
                     buffer += self.__channel.recv(size)
             except socket.timeout:
                 pass
-            sleep(0.16)
+            sleep(sleep_time)
 
         return buffer.decode("utf-8")
 
