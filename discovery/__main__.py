@@ -34,25 +34,45 @@ def get_context(target, infrastructure, commanders):
             infrastructure['commander']))
 
 
-def command_show(sub_command, target, dict_):
-    if target == 'all' or target == 'None':
+def show_commander(target, commanders):
+    if target == 'all':
         show(
             colored("[Discovery]", "magenta"),
-            colored("[{}]".format(sub_command), "cyan", attrs=['bold']),
-            colored("[show]", "green"),
-            colored(print_list(dict_.keys()), "blue")
+            colored("[commander]", "cyan", attrs=['bold']),
+            colored(print_list(commanders.keys()), "blue")
         )
-        return True
-    elif target in dict_:
+    elif target in commanders:
+        show(
+            colored("[Discovery]", "magenta"),
+            colored("[commander]", "cyan", attrs=['bold']),
+            colored("[{}]".format(target), "yellow", attrs=['bold']),
+            colored(print_json_data(commanders[target]), "blue")
+        )
+
+
+def list_infrastructures(target, infrastructures):
+    if target == 'all':
+        show(
+            colored("[Discovery]", "magenta"),
+            colored("[infrastructure]", "cyan", attrs=['bold']),
+            colored("[show]", "green"),
+            colored(print_list(infrastructures.keys()), "blue")
+        )
+    elif target in infrastructures:
         show(
             colored("[Discovery]", "magenta"),
             colored("[infrastructure]", "cyan", attrs=['bold']),
             colored("[show]", "green"),
             colored("[{}]".format(target), "yellow", attrs=['bold']),
-            colored(print_json_data(dict_[target]), "blue")
+            colored(print_json_data(infrastructures[target]), "blue")
         )
-        return True
-    return False
+    else:
+        show(
+            colored("[Discovery]", "magenta"),
+            colored("[Infrastructure]", "white"),
+            colored("[{}][not found...]".format(
+                target), "red")
+        )
 
 
 def main():
@@ -75,13 +95,14 @@ def main():
     # sub command [commander]
     parser_commander = subparsers.add_parser(
         'commander', help='Explore inventory commander')
+    parser_commander.add_argument(
+        'commander_target', metavar="target", default="None",
+        type=str, help='Target commander. It\'s the commander name.')
     sub_parser_commander = parser_commander.add_subparsers(
         dest="sub_command_commander")
-    parser_commander_show = sub_parser_commander.add_parser(
-        'show', help='Get info about commanders')
-    parser_commander_show.add_argument(
-        'parser_commander_show_target', metavar="target",
-        type=str, help='Target of show command for commanders. Possible values: ["all", infrastructure_id]')
+    # infrastructures
+    parser_infrastructure_info = sub_parser_commander.add_parser(
+        'infrastructures', help='Get info about the infrastructures managed by this commander')
 
     # sub command [infrastructure]
     parser_infrastructure = subparsers.add_parser(
@@ -146,9 +167,15 @@ def main():
 
     # RUN
     if args.sub_command == "commander":
-        if args.sub_command_commander == 'show':
-            if not command_show(args.sub_command, args.infrastructure_target, inventory['commanders']):
-                parser.print_help()
+        cur_target = args.commander_target
+        if (cur_target != 'None' or cur_target == 'list') and not args.sub_command_commander:
+            show_commander(cur_target if cur_target != 'list' else 'all', inventory['commanders'])
+        elif args.sub_command_commander == 'infrastructures':
+            ctx = get_context("commander", {
+                            'commander': cur_target,
+                            'id': None
+                        }, inventory['commanders'])
+            ctx.infrastructures()
         else:
             parser.print_help()
     elif args.sub_command == "infrastructure":
@@ -161,14 +188,7 @@ def main():
             )
             exit()
         elif cur_target == "list":
-            if not command_show(args.sub_command, 'all', inventory['infrastructures']):
-                parser.print_help()
-        elif cur_target == "remote":
-            ctx = get_context(cur_target, {
-                'commander': inventory['default']['commander'],
-                'id': None
-            }, inventory['commanders'])
-            ctx.infrastructures()
+            list_infrastructures('all', inventory['infrastructures'])
         else:
             if args.sub_command_infrastructure == 'create':
                 if args.parser_infrastructure_create_target_commander in inventory['commanders']:
@@ -218,9 +238,6 @@ def main():
                                        property_=args.vm_property)
                     else:
                         method_to_call()
-                elif args.sub_command_infrastructure == 'show':
-                    if not command_show(args.sub_command, cur_target, inventory['infrastructures']):
-                        parser.print_help()
                 elif args.sub_command_infrastructure == 'delete':
                     if cur_target in inventory['infrastructures']:
                         ctx = get_context(
@@ -268,8 +285,8 @@ def main():
                                 cur_commander), "red")
                         )
                 else:
-                    if not command_show(args.sub_command, cur_target, inventory['infrastructures']):
-                        parser.print_help()
+                    list_infrastructures(
+                        cur_target, inventory['infrastructures'])
             else:
                 show(
                     colored("[Discovery]", "magenta"),
