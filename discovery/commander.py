@@ -21,6 +21,7 @@ class KeyFile(object):
     def __init__(self, content):
         self.__file = tempfile.NamedTemporaryFile(mode="w")
         self.__file.write(content)
+        self.__file.flush()
         self.__file.seek(0)
 
     @property
@@ -64,12 +65,15 @@ class SSHHandler(object):
         elif self.__password:
             self.__ssh.connect(self.__ip, username=self.__username,
                                password=self.__password)
-        else:
-            tmp_key = paramiko.RSAKey.from_private_key_file(self.__private_key.name)
+        elif self.__private_key:
+            tmp_key = paramiko.RSAKey.from_private_key_file(
+                self.__private_key.name)
             self.__ssh.connect(self.__ip, username=self.__username,
                                pkey=tmp_key,
                                look_for_keys=False,
                                allow_agent=False)
+        else:
+            raise Exception("Can't connect with a valid method...")
 
     def __enter__(self):
         self.__connect()
@@ -102,17 +106,29 @@ class SSHHandler(object):
     def jump(self, ip, username, password=None, public_key=None, private_key=None):
         if self.__channel is None:
             self.__channel = self.__ssh.invoke_shell()
-        commands = [
-            "cat << EOF > p.key\n{}\nEOF\n".format(private_key),
-            "chmod 0600 p.key\n",
-            "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i p.key {}@{}\n".format(
-                username, ip)
-        ]
+        if password:
+            commands = [
+                "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no {}@{}\n".format(
+                    username, ip),
+                password + "\n"
+            ]
+        elif private_key:
+            commands = [
+                "cat << EOF > p.key\n{}\nEOF\n".format(private_key),
+                "chmod 0600 p.key\n",
+                "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i p.key {}@{}\n".format(
+                    username, ip)
+            ]
         while len(commands) > 0:
             while not self.__channel.send_ready():
                 pass
             cur_command = commands.pop(0)
             self.__channel.sendall(cur_command)
+        
+        while not self.__channel.exit_status_ready():
+            exit_status = self.__channel.recv_exit_status()
+        
+        print(exit_status)
 
     def __prepare(self):
         """Superuser escalation and open bash."""
@@ -209,7 +225,9 @@ class CommanderIM(Commander):
     """
 
     def __init__(self, config, target_name, infrastructure_name, infrastructure_id=None):
-        self.__server_url = config['server_url']
+        self.__server_url = config['server_url'].strip()
+        if self.__server_url[-1] == "/":
+            self.__server_ur = self.__server_ur[:-1]
         self.__in_id = infrastructure_id
         self.__in_name = infrastructure_name
         self.__target_name = target_name
@@ -301,7 +319,8 @@ class CommanderIM(Commander):
                 cur_shell.invoke_shell()
         elif mode == 'bastion':
             with SSHHandler(bastion['addr'], bastion['username']) as cur_shell:
-                pass
+                cur_shell.jump(ip, username, password, public_key, private_key)
+                cur_shell.invoke_shell()
         else:
             proxy_vm_id = int(mode)
             proxy_ip, (proxy_username, proxy_password, proxy_public_key,
@@ -374,7 +393,7 @@ class CommanderIM(Commander):
 
         with open(data_path, 'rb') as template_file:
             res = requests.post(
-                self.__url_compose(),
+                self.__url_compose('infrastructures'),
                 headers=self.__headers,
                 data=template_file
             )
@@ -409,7 +428,7 @@ class CommanderIM(Commander):
             )
 
         res = requests.delete(
-            self.__url_compose(self.in_id),
+            self.__url_compose("infrastructures", self.in_id),
             headers=self.__headers
         )
 
@@ -481,7 +500,7 @@ class CommanderIM(Commander):
         self.__header_compose(token)
 
         res = requests.get(
-            self.__url_compose(self.in_id, property_),
+            self.__url_compose("infrastructures", self.in_id, property_),
             headers=self.__headers
         )
 
@@ -512,7 +531,7 @@ class CommanderIM(Commander):
         self.__header_compose(token)
 
         res = requests.get(
-            self.__url_compose(self.in_id),
+            self.__url_compose("infrastructures", self.in_id),
             headers=self.__headers
         )
 
@@ -541,7 +560,7 @@ class CommanderIM(Commander):
         self.__header_compose(token)
 
         res = requests.put(
-            self.__url_compose(self.in_id, 'reconfigure'),
+            self.__url_compose("infrastructures", self.in_id, 'reconfigure'),
             headers=self.__headers
         )
 
@@ -570,7 +589,7 @@ class CommanderIM(Commander):
             tmp = [self.in_id, 'vms', str(id_), 'contmsg']
 
         res = requests.get(
-            self.__url_compose(*tmp),
+            self.__url_compose("infrastructures", *tmp),
             headers=self.__headers
         )
 

@@ -13,7 +13,8 @@ def get_context(target, infrastructure, commanders):
         colored("[Discovery]", "magenta"),
         colored("[{}]".format(infrastructure['commander']), "white"),
         colored("[{}]".format(target), "red"),
-        colored("[get context]", "yellow", attrs=['bold'])
+        colored("[get context]", "yellow", attrs=['bold']),
+        colored("[{}]".format(infrastructure['id']), "yellow")
     )
     if infrastructure['commander'] in commanders:
         commander_cfg = commanders[infrastructure['commander']]
@@ -24,7 +25,8 @@ def get_context(target, infrastructure, commanders):
                 colored("[Discovery]", "magenta"),
                 colored("[{}]".format(infrastructure['commander']), "white"),
                 colored("[{}]".format(target), "red"),
-                colored("[get context]", "green")
+                colored("[get context]", "green"),
+                colored("[{}]".format(infrastructure['id']), "green")
             )
             return context
     else:
