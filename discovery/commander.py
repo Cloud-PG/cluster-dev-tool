@@ -108,28 +108,39 @@ class SSHHandler(object):
         if self.__channel is None:
             self.__channel = self.__ssh.invoke_shell()
         if password:
+            show(
+                colored("[Discovery][ssh]", "magenta"),
+                colored("[Found password login]", "green")
+            )
             commands = [
-                "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no {}@{}\n".format(
-                    username, ip),
-                password + "\n"
+                ("ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no {}@{}\n".format(
+                    username, ip), "open shell"),
+                (password + "\n", "insert password")
             ]
         elif private_key:
+            show(
+                colored("[Discovery][ssh]", "magenta"),
+                colored("[Found private key login]", "green")
+            )
             commands = [
-                "cat << EOF > p.key\n{}\nEOF\n".format(private_key),
-                "chmod 0600 p.key\n",
-                "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i p.key {}@{}\n".format(
-                    username, ip)
+                ("cat << EOF > p.key\n{}\nEOF\n".format(private_key), "copy key"),
+                ("chmod 0600 p.key\n", "change attribute"),
+                ("chown cloudadm:cloudadm p.key\n", "change owner"),
+                ("ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i p.key {}@{}\n".format(
+                    username, ip), "open shell with key")
             ]
+        else:
+            raise Exception("Not a valid credential method to jump...")
         while len(commands) > 0:
             while not self.__channel.send_ready():
-                pass
-            cur_command = commands.pop(0)
+                sleep(0.1)
+            cur_command, message = commands.pop(0)
+            show(
+                colored("[Discovery][ssh]", "magenta"), 
+                colored("[{}]".format(message), "yellow")
+            )
             self.__channel.sendall(cur_command)
-        
-        while not self.__channel.exit_status_ready():
-            exit_status = self.__channel.recv_exit_status()
-        
-        print(exit_status)
+
 
     def __prepare(self):
         """Superuser escalation and open bash."""
@@ -147,7 +158,7 @@ class SSHHandler(object):
         while run:
             input_ = ""
             try:
-                input_ = input(colored("[Insert command]:", "magenta"))
+                input_ = input(colored("[Discovery][ssh][Insert command]:", "magenta"))
             except KeyboardInterrupt:
                 input_ = "discovery_exit"
             self.__channel.sendall(input_ + "\n")
@@ -157,7 +168,7 @@ class SSHHandler(object):
                 print(self.__recv())
 
         show(
-            colored("\033[2K\r[Session DONE]", "magenta")
+            colored("\033[2K\r[Discovery][ssh][Session DONE]", "magenta")
         )
         self.__channel.close()
 
