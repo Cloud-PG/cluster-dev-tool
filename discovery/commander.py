@@ -592,6 +592,8 @@ class CommanderIM(Commander):
 
         Print vm info and return radl object.
         """
+        self.__check_vm_number(id_)
+
         token = self.__auth.token(show_output=show_output)
         self.__header_compose(token)
 
