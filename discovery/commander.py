@@ -136,11 +136,10 @@ class SSHHandler(object):
                 sleep(0.1)
             cur_command, message = commands.pop(0)
             show(
-                colored("[Discovery][ssh]", "magenta"), 
+                colored("[Discovery][ssh]", "magenta"),
                 colored("[{}]".format(message), "yellow")
             )
             self.__channel.sendall(cur_command)
-
 
     def __prepare(self):
         """Superuser escalation and open bash."""
@@ -158,7 +157,8 @@ class SSHHandler(object):
         while run:
             input_ = ""
             try:
-                input_ = input(colored("[Discovery][ssh][Insert command]:", "magenta"))
+                input_ = input(
+                    colored("[Discovery][ssh][Insert command]:", "magenta"))
             except KeyboardInterrupt:
                 input_ = "discovery_exit"
             self.__channel.sendall(input_ + "\n")
@@ -412,11 +412,6 @@ class CommanderIM(Commander):
 
         content, result = self.__prepare_result(res, get_content=True)
 
-        try:
-            self.__in_id = extract_in_id(content['uri'])
-        except TypeError:
-            self.__in_id = extract_in_id(content)
-
         if show_output:
             show(
                 colored("[Discovery]", "magenta"),
@@ -425,6 +420,14 @@ class CommanderIM(Commander):
                 colored("[CREATE]", "green"),
                 colored("[\n{}\n]".format(result), "blue")
             )
+
+        if res.status_code == 200:
+            try:
+                self.__in_id = extract_in_id(content['uri'])
+            except TypeError:
+                self.__in_id = extract_in_id(content)
+            return True
+        return False
 
     def delete(self, show_output=True):
         token = self.__auth.token(show_output=show_output)
@@ -631,7 +634,7 @@ class CommanderIM(Commander):
 
         if property_ != 'contmsg':
             return radl_obj
-    
+
     def infrastructures(self, show_output=True):
         """Get all infrastructure ids which this commander has access."""
         token = self.__auth.token(show_output=show_output)

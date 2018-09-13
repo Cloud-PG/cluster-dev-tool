@@ -197,20 +197,28 @@ def main():
                             'commander': args.parser_infrastructure_create_target_commander,
                             'id': None
                         }, inventory['commanders'])
-                        ctx.create(
+                        res = ctx.create(
                             cur_target, args.parser_infrastructure_create_target_data_path)
-                        inventory['infrastructures'][cur_target] = {
-                            'commander': args.parser_infrastructure_create_target_commander,
-                            'id': ctx.in_id
-                        }
-                        with open(args.inventory, 'w') as inventory_file:
-                            json.dump(inventory, inventory_file, indent=2)
-                        show(
-                            colored("[Discovery]", "magenta"),
-                            colored("[Infrastructure]", "white"),
-                            colored("[{}][successfully created. Inventory is updated...]".format(
-                                cur_target), "green")
-                        )
+                        if res:
+                            inventory['infrastructures'][cur_target] = {
+                                'commander': args.parser_infrastructure_create_target_commander,
+                                'id': ctx.in_id
+                            }
+                            with open(args.inventory, 'w') as inventory_file:
+                                json.dump(inventory, inventory_file, indent=2)
+                            show(
+                                colored("[Discovery]", "magenta"),
+                                colored("[Infrastructure]", "white"),
+                                colored("[{}][successfully created. Inventory is updated...]".format(
+                                    cur_target), "green")
+                            )
+                        else:
+                            show(
+                                colored("[Discovery]", "magenta"),
+                                colored("[Commander]", "white"),
+                                colored("[{}][CREATION FAILED... Check the output for debuggin...]".format(
+                                    args.parser_infrastructure_create_target_commander), "red")
+                            )
                     else:
                         show(
                             colored("[Discovery]", "magenta"),
