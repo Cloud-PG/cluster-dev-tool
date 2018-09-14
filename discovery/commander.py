@@ -410,6 +410,9 @@ class CommanderIM(Commander):
                 data=template_file
             )
 
+            if res.status_code == 400:
+                self.__error('create', res)
+
         content, result = self.__prepare_result(res, get_content=True)
 
         if show_output:
@@ -446,6 +449,9 @@ class CommanderIM(Commander):
             self.__url_compose("infrastructures", self.in_id),
             headers=self.__headers
         )
+
+        if res.status_code == 400:
+            self.__error('delete', res)
 
         result = self.__prepare_result(res)
 
@@ -519,6 +525,12 @@ class CommanderIM(Commander):
             headers=self.__headers
         )
 
+        if res.status_code == 400:
+            if res.text.find("OIDC auth Token expired") != -1:
+                return self.__property_name(property_, force=True)
+            else:
+                self.__error(property_, res)
+
         result = self.__prepare_result(res, output_filter=output_filter)
 
         if show_output:
@@ -529,10 +541,6 @@ class CommanderIM(Commander):
                 colored("[{}]".format(property_), "green"),
                 colored("[\n{}\n]".format(result), "blue")
             )
-
-        if res.status_code == 400:
-            if res.text.find("OIDC auth Token expired") != -1:
-                return self.__property_name(property_, force=True)
 
         return res
 
@@ -549,6 +557,9 @@ class CommanderIM(Commander):
             self.__url_compose("infrastructures", self.in_id),
             headers=self.__headers
         )
+
+        if res.status_code == 400:
+            self.__error('info', res)
 
         result = self.__prepare_result(res, output_filter=output_filter)
 
@@ -578,6 +589,9 @@ class CommanderIM(Commander):
             self.__url_compose("infrastructures", self.in_id, 'reconfigure'),
             headers=self.__headers
         )
+
+        if res.status_code == 400:
+            self.__error('reconfigure', res)
 
         result = self.__prepare_result(res)
 
@@ -609,6 +623,9 @@ class CommanderIM(Commander):
             self.__url_compose("infrastructures", *tmp),
             headers=self.__headers
         )
+
+        if res.status_code == 400:
+            self.__error('vm', res)
 
         if property_ != 'contmsg':
             radl_obj = parse_radl(res.text)
@@ -645,6 +662,9 @@ class CommanderIM(Commander):
             headers=self.__headers
         )
 
+        if res.status_code == 400:
+            self.__error('infrastructures', res)
+
         result = self.__prepare_result(res, output_filter="infrastructure_ids")
 
         if show_output:
@@ -655,3 +675,13 @@ class CommanderIM(Commander):
                 colored("[ids]", "green"),
                 colored("[\n{}\n]".format(result), "blue")
             )
+
+    def __error(self, command, res):
+        show(
+            colored("[Discovery]", "magenta"),
+            colored("[{}]".format(self.__in_name), "white"),
+            colored("[{}]".format(self.__target_name), "red"),
+            colored("[{}][ERROR]".format(command), "red"),
+            colored("[\n{}\n]".format(res.text), "blue")
+        )
+        exit()
