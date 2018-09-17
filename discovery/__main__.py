@@ -296,13 +296,21 @@ def main():
                     list_infrastructures(
                         cur_target, inventory['infrastructures'])
             else:
-                show(
-                    colored("[Discovery]", "magenta"),
-                    colored("[Infrastructure]", "white"),
-                    colored("[{}][not a valid command...]".format(
-                        cur_target), "red")
-                )
-                parser.print_help()
+                if cur_target not in inventory['infrastructures']:
+                    show(
+                        colored("[Discovery]", "magenta"),
+                        colored("[Infrastructure]", "white"),
+                        colored("[{}][not a valid target...]".format(
+                            cur_target), "red")
+                    )
+                else:
+                    show(
+                        colored("[Discovery]", "magenta"),
+                        colored("[Infrastructure]", "white"),
+                        colored("[{}][not a valid command...]".format(
+                            cur_target), "red")
+                    )
+                    parser.print_help()
     else:
         parser.print_help()
 
