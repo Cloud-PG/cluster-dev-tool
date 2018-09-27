@@ -4,6 +4,7 @@ import socket
 import tempfile
 from abc import ABCMeta, abstractmethod
 from getpass import getpass
+from os import chmod
 from time import sleep
 
 import paramiko
@@ -604,7 +605,7 @@ class CommanderIM(Commander):
                 colored("[\n{}\n]".format(result), "blue")
             )
 
-    def vm(self, id_, property_=None, show_output=True):
+    def vm(self, id_, property_=None, export_credentials=False, show_output=True):
         """Get information about the selected vm in the current infrastructure.
 
         Print vm info and return radl object.
@@ -631,12 +632,23 @@ class CommanderIM(Commander):
             radl_obj = parse_radl(res.text)
 
         if show_output:
+            system = radl_obj.systems[0]
             if property_ == 'pkey':
-                _, _, _, pkey = radl_obj.systems[0].getCredentialValues()
+                _, _, _, pkey = system.getCredentialValues()
                 result = pkey
             elif property_ == 'user':
-                user, _, _, _ = radl_obj.systems[0].getCredentialValues()
+                user, _, _, _ = system.getCredentialValues()
                 result = user
+            elif export_credentials:
+                user, _, _, pkey = system.getCredentialValues()
+                ip = system.getIfaceIP(system.getNumNetworkIfaces() - 1)
+                key_filename = "tmp_p.key"
+                with open(key_filename, "w") as key_file:
+                    key_file.write(pkey)
+                chmod(key_filename, 0o600)
+                result = "A temporari 'tmp_p.key is written. Use the following command to connect:\n\nssh -i {} {}@{}\n\n".format(
+                    key_filename, user, ip
+                )
             else:
                 result = self.__prepare_result(res)
                 result = "\n{}\n".format(result)
