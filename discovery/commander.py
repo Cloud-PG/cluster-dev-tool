@@ -664,7 +664,7 @@ class CommanderIM(Commander):
         if property_ != 'contmsg':
             return radl_obj
 
-    def infrastructures(self, show_output=True):
+    def infrastructures(self, infrastructures, show_output=True):
         """Get all infrastructure ids which this commander has access."""
         token = self.__auth.token(show_output=show_output)
         self.__header_compose(token)
@@ -678,6 +678,11 @@ class CommanderIM(Commander):
             self.__error('infrastructures', res)
 
         result = self.__prepare_result(res, output_filter="infrastructure_ids")
+
+        tmp_inf = [(key, value['id']) for key, value in infrastructures.items()]
+        for name, in_id in tmp_inf:
+            if result.find(in_id) != -1:
+                result = result.replace(in_id, "{} -> {}".format(in_id, name))
 
         if show_output:
             show(

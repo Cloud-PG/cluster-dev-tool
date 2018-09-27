@@ -178,7 +178,7 @@ def main():
                             'commander': cur_target,
                             'id': None
                         }, inventory['commanders'])
-            ctx.infrastructures()
+            ctx.infrastructures(inventory['infrastructures'])
         else:
             parser.print_help()
     elif args.sub_command == "infrastructure":
