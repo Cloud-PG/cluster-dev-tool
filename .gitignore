@@ -178,8 +178,8 @@ $RECYCLE.BIN/
 # End of https://www.gitignore.io/api/linux,macos,windows
 
 # User data
-iam.cfg.json
-inventory.json
+iam*.cfg.json
+inventory*.json
 .vscode/
 TODO
 tmp_p.key
