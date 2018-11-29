@@ -628,11 +628,13 @@ class CommanderIM(Commander):
         if res.status_code == 400:
             self.__error('vm', res)
 
+        radl_obj = None
         if property_ != 'contmsg':
             radl_obj = parse_radl(res.text)
 
         if show_output:
-            system = radl_obj.systems[0]
+            if radl_obj:
+                system = radl_obj.systems[0]
             if property_ == 'pkey':
                 _, _, _, pkey = system.getCredentialValues()
                 result = pkey
