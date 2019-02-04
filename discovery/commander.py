@@ -511,6 +511,46 @@ class CommanderIM(Commander):
             return content, result
 
         return result
+    
+    @staticmethod
+    def __colored_contmsg(text):
+        for line in text.split("\n"):
+            if line.find("TASK") != -1:
+                tmp = line.split("[")
+                content = tmp[1].split("]")
+                head = colored("{}[".format(tmp[0]), "blue", attrs=["bold"])
+                tail = colored("]{}".format(content[1]), "blue", attrs=["bold"])
+                try:
+                    module, task = content[0].split(":")
+                    module = colored("{}:".format(module), "white")
+                    task = colored(task, "magenta")
+                except ValueError:
+                    module = ""
+                    task = colored(content[0], "magenta")
+                
+                yield head + module + task + tail
+            elif line.find("ok: ") != -1:
+                head, content = line.split(": ", 1)
+                head = colored("{}: ".format(head), "green", attrs=["bold"])
+                yield head + content
+            elif line.find("skipping: ") != -1:
+                head, content = line.split(": ", 1)
+                head = colored("{}: ".format(head), "cyan")
+                yield head + content
+            elif line.find("changed: ") != -1:
+                head, content = line.split(": ", 1)
+                head = colored("{}: ".format(head), "yellow", attrs=["bold"])
+                yield head + content
+            elif line.find("fatal: ") != -1:
+                head, content = line.split(": ", 1)
+                head = colored("{}: ".format(head), "red", attrs=["bold"])
+                yield head + content
+            elif line.find("PLAY [") != -1:
+                yield colored(line, 'white', attrs=["bold", "underline"])
+            elif line.find("PLAY RECAP") != -1:
+                yield colored(line, 'white', attrs=["bold", "underline"])
+            else:
+                yield line
 
     def __property_name(self, property_, force=False, show_output=True, output_filter=None):
         """Get the infrastructure state.
@@ -535,13 +575,24 @@ class CommanderIM(Commander):
         result = self.__prepare_result(res, output_filter=output_filter)
 
         if show_output:
-            show(
-                colored("[Discovery]", "magenta"),
-                colored("[{}]".format(self.__in_name), "white"),
-                colored("[{}]".format(self.__target_name), "red"),
-                colored("[{}]".format(property_), "green"),
-                colored("[\n{}\n]".format(result), "blue")
-            )
+            if property_ == "contmsg":
+                show(
+                    colored("[Discovery]", "magenta"),
+                    colored("[{}]".format(self.__in_name), "white"),
+                    colored("[{}]".format(self.__target_name), "red"),
+                    colored("[{}]".format(property_), "green"),
+                    colored("[\n", "blue"),
+                    "\n".join(self.__colored_contmsg(result)),
+                    colored("\n]", "blue")
+                )
+            else:
+                show(
+                    colored("[Discovery]", "magenta"),
+                    colored("[{}]".format(self.__in_name), "white"),
+                    colored("[{}]".format(self.__target_name), "red"),
+                    colored("[{}]".format(property_), "green"),
+                    colored("[\n{}\n]".format(result), "blue")
+                )
 
         return res
 
