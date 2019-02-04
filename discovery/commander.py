@@ -527,7 +527,6 @@ class CommanderIM(Commander):
                 except ValueError:
                     module = ""
                     task = colored(content[0], "magenta")
-                
                 yield head + module + task + tail
             elif line.find("ok: ") != -1:
                 head, content = line.split(": ", 1)
@@ -544,7 +543,8 @@ class CommanderIM(Commander):
             elif line.find("fatal: ") != -1:
                 head, content = line.split(": ", 1)
                 head = colored("{}: ".format(head), "red", attrs=["bold"])
-                yield head + content
+                info, err = content.split("=>")
+                yield head + info + "=>" + print_json_data(json.loads(err), indent=4)
             elif line.find("PLAY [") != -1:
                 yield colored(line, 'white', attrs=["bold", "underline"])
             elif line.find("PLAY RECAP") != -1:
