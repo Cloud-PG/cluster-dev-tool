@@ -712,7 +712,9 @@ class CommanderIM(Commander):
                 colored("[{}]".format(self.__in_name), "white"),
                 colored("[{}]".format(self.__target_name), "red"),
                 colored("[info]", "green"),
-                colored("[{}]".format(result), "blue")
+                colored("[\n", "blue"),
+                "\n".join(self.__colored_contmsg(result)),
+                colored("\n]", "blue")
             )
 
         if property_ != 'contmsg':
