@@ -699,9 +699,10 @@ class CommanderIM(Commander):
                 with open(key_filename, "w") as key_file:
                     key_file.write(pkey)
                 chmod(key_filename, 0o600)
-                result = "A temporari 'tmp_p.key is written. Use the following command to connect:\n\nssh -i {} {}@{}\n\n".format(
+                command = "ssh -i {} {}@{}".format(
                     key_filename, user, ip
                 )
+                result = "A temporari 'tmp_p.key is written. We use the following command to connect:\n\n{}\n\n".format(command)
             else:
                 result = self.__prepare_result(res)
                 result = "\n{}\n".format(result)
