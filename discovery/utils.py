@@ -1,5 +1,9 @@
 import json
 
+from pygments import highlight
+from pygments.formatters import TerminalFormatter
+from pygments.lexers import JsonLexer
+
 
 def show(*args, **kwargs):
     if kwargs.get('clean'):
@@ -17,7 +21,7 @@ def print_list(list_):
 
 
 def print_json_data(data):
-    return json.dumps(data, indent=2)
+    return highlight(json.dumps(data, indent=2), JsonLexer(), TerminalFormatter())
 
 
 def print_right_shift(string, n=2):

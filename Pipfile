@@ -10,6 +10,7 @@ termcolor = "*"
 arghelper = "*"
 radl = "*"
 paramiko = "*"
+pygments = "*"
 
 [dev-packages]
 "autopep8" = "*"
