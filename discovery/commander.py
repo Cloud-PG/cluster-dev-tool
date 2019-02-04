@@ -702,7 +702,7 @@ class CommanderIM(Commander):
                 command = "ssh -i {} {}@{}".format(
                     key_filename, user, ip
                 )
-                result = "A temporari 'tmp_p.key is written. We use the following command to connect:\n{}\n".format(command)
+                result = "A temporari 'tmp_p.key is written. We use the following command to connect:\n\n{}\n".format(command)
             else:
                 result = self.__prepare_result(res)
                 result = "\n{}\n".format(result)
