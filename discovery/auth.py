@@ -60,15 +60,17 @@ class IAM(Auth):
         else:
             cur_file = self.conf_file
 
-        show(colored("[Discovery][IAM]", "magenta"), colored(
-            "[Load Config]", "yellow"), end='\r')
+        show(colored("[Discovery]", "magenta"),
+             colored("[IAM]", "white"),
+             colored("[Load Config]", "yellow"), end='\r')
         with open(cur_file) as file_:
             config = json.load(file_)
 
         for key, value in config['cfg'].items():
             if hasattr(self, key):
                 show(
-                    colored("[Discovery][IAM]", "magenta"),
+                    colored("[Discovery]", "magenta"),
+                    colored("[IAM]", "white"),
                     colored("[Load Config]", "yellow"),
                     colored("[Set '{}'\t-> '{}']".format(key, value), "yellow"),
                     end="\r"
@@ -131,7 +133,8 @@ class IAM(Auth):
                     colored("[Request token](✗)", "red"),
                     colored("[status code]({})".format(
                         res.status_code), "yellow"),
-                    colored("[\n{}\n]".format(print_right_shift(res.text)), "blue")
+                    colored("[\n{}\n]".format(
+                        print_right_shift(res.text)), "blue")
                 )
                 exit()
 

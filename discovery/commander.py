@@ -542,7 +542,7 @@ class CommanderIM(Commander):
                 yield head + content
             elif line.find("fatal: ") != -1:
                 head, content = line.split(": ", 1)
-                head = colored("{}: ".format(head), "red", attrs=["bold"])
+                head = colored("{}: ".format(head), "red", attrs=["bold", "underline"])
                 info, err = content.split("=>")
                 yield head + info + "=>" + print_json_data(json.loads(err), indent=4)
             elif line.find("PLAY [") != -1:
