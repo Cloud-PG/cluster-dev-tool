@@ -117,7 +117,7 @@ def main():
         'info', help='Get info about the infrastructure')
     # reconfigure
     parser_infrastructure_reconfigure = sub_parser_infrastructure.add_parser(
-        'reconfigure', help='Reconfigure about the infrastructure')
+        'reconfigure', help='Reconfigure the infrastructure')
     # delete
     parser_infrastructure_delete = sub_parser_infrastructure.add_parser(
         'delete', help='Delete an infrastructures')
