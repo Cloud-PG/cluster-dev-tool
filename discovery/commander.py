@@ -518,13 +518,13 @@ class CommanderIM(Commander):
     def __colored_contmsg(text):
         for line in text.split("\n"):
             if line.find("TASK") != -1:
-                tmp = line.split("[")
-                content = tmp[1].split("]")
+                tmp = line.split("[", 1)
+                content = tmp[1].split("]", 1)
                 head = colored("{}[".format(tmp[0]), "blue", attrs=["bold"])
                 tail = colored("]{}".format(
                     content[1]), "blue", attrs=["bold"])
                 try:
-                    module, task = content[0].split(":")
+                    module, task = content[0].split(":", 1)
                     module = colored("{}:".format(module), "white")
                     task = colored(task, "magenta")
                 except ValueError:
