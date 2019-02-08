@@ -13,6 +13,7 @@ import requests
 from radl.radl_parse import parse_radl
 from termcolor import colored
 from yaspin import yaspin
+from yaspin.spinners import Spinners
 
 from .auth import IAM
 from .utils import (extract_in_id, filter_output, print_json_data, print_list,
@@ -402,16 +403,17 @@ class CommanderIM(Commander):
             show(
                 colored("[Discovery]", "magenta"),
                 colored("[{}]".format(self.__in_name), "white"),
-                colored("[{}]".format(self.__target_name), "red"),
-                colored("[CREATING...]", "yellow")
+                colored("[{}]".format(self.__target_name), "red")
             )
 
         with open(data_path, 'rb') as template_file:
-            res = requests.post(
-                self.__url_compose('infrastructures'),
-                headers=self.__headers,
-                data=template_file
-            )
+            with yaspin(Spinners.pong, text=colored("[CREATING...]", "yellow"), color="yellow") as s:
+                res = requests.post(
+                    self.__url_compose('infrastructures'),
+                    headers=self.__headers,
+                    data=template_file
+                )
+                spinner.text = "\r"
 
             if res.status_code == 400:
                 self.__error('create', res)
@@ -444,14 +446,15 @@ class CommanderIM(Commander):
             show(
                 colored("[Discovery]", "magenta"),
                 colored("[{}]".format(self.__in_name), "white"),
-                colored("[{}]".format(self.__target_name), "red"),
-                colored("[DELETING...]", "yellow")
+                colored("[{}]".format(self.__target_name), "red")
             )
 
-        res = requests.delete(
-            self.__url_compose("infrastructures", self.in_id),
-            headers=self.__headers
-        )
+        with yaspin(Spinners.pong, text=colored("[DELETING...]", "yellow"), color="yellow") as spinner:
+            res = requests.delete(
+                self.__url_compose("infrastructures", self.in_id),
+                headers=self.__headers
+            )
+            spinner.text = "\r"
 
         if res.status_code == 400:
             self.__error('delete', res)
@@ -567,7 +570,7 @@ class CommanderIM(Commander):
 
         if property_ == "state" and monitor:
             try:
-                with yaspin(text=colored("Monitoring...", 'yellow'), color="yellow") as spinner:
+                with yaspin(Spinners.pong, text=colored("Monitoring...", 'yellow'), color="yellow") as spinner:
                     while True:
                         res = requests.get(
                             self.__url_compose(
@@ -578,6 +581,7 @@ class CommanderIM(Commander):
                             obj = res.json()
                             spinner.text = colored("[STATE]: {}".format(
                                 obj['state']['state']), 'yellow')
+                        sleep(5)
             except KeyboardInterrupt:
                 spinner.text = "\r"
                 result = self.__prepare_result(
