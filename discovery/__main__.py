@@ -246,9 +246,9 @@ def main():
                         cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
                     method_to_call = getattr(
                         ctx, args.sub_command_infrastructure)
-                    if args.filter is not None:  # for 'radl', 'state', 'contmsg', 'outputs', 'data' commands
+                    if 'filter' in args and args.filter is not None:  # for 'radl', 'state', 'contmsg', 'outputs', 'data' commands
                         method_to_call(output_filter=args.filter)
-                    elif args.monitor is True:
+                    elif 'monitor' in args and args.monitor is True:
                         method_to_call(monitor=True)
                     elif 'parser_infrastructure_vm_number' in args:  # for 'vm' command
                         method_to_call(args.parser_infrastructure_vm_number,
