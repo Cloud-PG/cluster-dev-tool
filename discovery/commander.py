@@ -1,5 +1,6 @@
 import configparser
 import json
+import signal
 import socket
 import tempfile
 from abc import ABCMeta, abstractmethod
@@ -11,6 +12,7 @@ import paramiko
 import requests
 from radl.radl_parse import parse_radl
 from termcolor import colored
+from yaspin import yaspin
 
 from .auth import IAM
 from .utils import (extract_in_id, filter_output, print_json_data, print_list,
@@ -474,8 +476,8 @@ class CommanderIM(Commander):
         self.__property_name('radl', show_output=show_output,
                              output_filter=output_filter)
 
-    def state(self, show_output=True, output_filter=None):
-        return self.__property_name('state', show_output=show_output, output_filter=output_filter).json()
+    def state(self, show_output=True, output_filter=None, monitor=False):
+        return self.__property_name('state', show_output=show_output, output_filter=output_filter, monitor=monitor).json()
 
     def contmsg(self, show_output=True, output_filter=None):
         self.__property_name(
@@ -511,7 +513,7 @@ class CommanderIM(Commander):
             return content, result
 
         return result
-    
+
     @staticmethod
     def __colored_contmsg(text):
         for line in text.split("\n"):
@@ -519,7 +521,8 @@ class CommanderIM(Commander):
                 tmp = line.split("[")
                 content = tmp[1].split("]")
                 head = colored("{}[".format(tmp[0]), "blue", attrs=["bold"])
-                tail = colored("]{}".format(content[1]), "blue", attrs=["bold"])
+                tail = colored("]{}".format(
+                    content[1]), "blue", attrs=["bold"])
                 try:
                     module, task = content[0].split(":")
                     module = colored("{}:".format(module), "white")
@@ -542,7 +545,8 @@ class CommanderIM(Commander):
                 yield head + content
             elif line.find("fatal: ") != -1:
                 head, content = line.split(": ", 1)
-                head = colored("{}: ".format(head), "red", attrs=["bold", "underline"])
+                head = colored("{}: ".format(head), "red",
+                               attrs=["bold", "underline"])
                 info, err = content.split("=>")
                 yield head + info + "=>" + print_json_data(json.loads(err), indent=4)
             elif line.find("PLAY [") != -1:
@@ -552,7 +556,7 @@ class CommanderIM(Commander):
             else:
                 yield line
 
-    def __property_name(self, property_, force=False, show_output=True, output_filter=None):
+    def __property_name(self, property_, force=False, show_output=True, output_filter=None, monitor=False):
         """Get the infrastructure state.
 
         API REST:
@@ -560,6 +564,32 @@ class CommanderIM(Commander):
         """
         token = self.__auth.token(force=force)
         self.__header_compose(token)
+
+        if property_ == "state" and monitor:
+            try:
+                with yaspin(text=colored("Monitoring...", 'yellow'), color="yellow") as spinner:
+                    while True:
+                        res = requests.get(
+                            self.__url_compose(
+                                "infrastructures", self.in_id, property_),
+                            headers=self.__headers
+                        )
+                        if res.status_code < 300:
+                            obj = res.json()
+                            spinner.text = colored("[STATE]: {}".format(
+                                obj['state']['state']), 'yellow')
+            except KeyboardInterrupt:
+                spinner.text = "\r"
+                result = self.__prepare_result(
+                    res, output_filter=output_filter)
+                show(
+                    colored("[Discovery]", "magenta"),
+                    colored("[{}]".format(self.__in_name), "white"),
+                    colored("[{}]".format(self.__target_name), "red"),
+                    colored("[{}]".format(property_), "green"),
+                    colored("[\n{}\n]".format(result), "blue")
+                )
+                return res
 
         res = requests.get(
             self.__url_compose("infrastructures", self.in_id, property_),
@@ -702,7 +732,8 @@ class CommanderIM(Commander):
                 command = "ssh -i {} {}@{}".format(
                     key_filename, user, ip
                 )
-                result = "A temporari 'tmp_p.key is written. We use the following command to connect:\n\n{}\n".format(command)
+                result = "A temporari 'tmp_p.key is written. We use the following command to connect:\n\n{}\n".format(
+                    command)
             else:
                 result = self.__prepare_result(res)
                 result = "\n{}\n".format(result)
@@ -735,7 +766,8 @@ class CommanderIM(Commander):
 
         result = self.__prepare_result(res, output_filter="infrastructure_ids")
 
-        tmp_inf = [(key, value['id']) for key, value in infrastructures.items()]
+        tmp_inf = [(key, value['id'])
+                   for key, value in infrastructures.items()]
         for name, in_id in tmp_inf:
             if result.find(in_id) != -1:
                 result = result.replace(in_id, "{} -> {}".format(in_id, name))

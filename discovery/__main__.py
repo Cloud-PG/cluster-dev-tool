@@ -158,12 +158,15 @@ def main():
             property_, help='Property {} of the infrastructures'.format(property_))
         cur_parser_infrastructure_property.add_argument('--filter', metavar="filter",
                                                         type=str, choices=['ansible_errors', 'squeezed_ansible_errors', 'infrastructure_ids'], help='Filter for command {}'.format(property_))
+        if property_ == 'state':
+            cur_parser_infrastructure_property.add_argument(
+                '--monitor', action="store_true", default=False, help='Monitor the state of the infrastructure')
 
     args, _ = parser.parse_known_args()
 
     ##
     # OUTPUT TEST - to be removed...
-    # print(args)
+    print(args)
 
     with open(args.inventory) as inventory_file:
         inventory = json.load(inventory_file)
@@ -172,12 +175,13 @@ def main():
     if args.sub_command == "commander":
         cur_target = args.commander_target
         if (cur_target != 'None' or cur_target == 'list') and not args.sub_command_commander:
-            show_commander(cur_target if cur_target != 'list' else 'all', inventory['commanders'])
+            show_commander(cur_target if cur_target !=
+                           'list' else 'all', inventory['commanders'])
         elif args.sub_command_commander == 'infrastructures':
             ctx = get_context("commander", {
-                            'commander': cur_target,
-                            'id': None
-                        }, inventory['commanders'])
+                'commander': cur_target,
+                'id': None
+            }, inventory['commanders'])
             ctx.infrastructures(inventory['infrastructures'])
         else:
             parser.print_help()
@@ -242,8 +246,10 @@ def main():
                         cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
                     method_to_call = getattr(
                         ctx, args.sub_command_infrastructure)
-                    if 'filter' in args:  # for 'radl', 'state', 'contmsg', 'outputs', 'data' commands
+                    if args.filter is not None:  # for 'radl', 'state', 'contmsg', 'outputs', 'data' commands
                         method_to_call(output_filter=args.filter)
+                    elif args.monitor is True:
+                        method_to_call(monitor=True)
                     elif 'parser_infrastructure_vm_number' in args:  # for 'vm' command
                         method_to_call(args.parser_infrastructure_vm_number,
                                        property_=args.vm_property,
