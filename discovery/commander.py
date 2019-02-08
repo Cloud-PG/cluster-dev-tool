@@ -522,7 +522,7 @@ class CommanderIM(Commander):
         for line in text.split("\n"):
             if line.find("TASK") != -1:
                 tmp = line.split("[", 1)
-                content = tmp[1].split("]", 1)
+                content = tmp[1].rsplit("]", 1)
                 head = colored("{}[".format(tmp[0]), "blue", attrs=["bold"])
                 tail = colored("]{}".format(
                     content[1]), "blue", attrs=["bold"])
