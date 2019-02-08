@@ -12,13 +12,35 @@ import paramiko
 import requests
 from radl.radl_parse import parse_radl
 from termcolor import colored
-from yaspin import yaspin
-from yaspin.spinners import Spinners
+from yaspin import yaspin, Spinner
+
 
 from .auth import IAM
 from .utils import (extract_in_id, filter_output, print_json_data, print_list,
                     print_right_shift, show)
 
+DISCOVERY_SPINNER = Spinner([
+ "[=        ]",
+ "[==       ]",
+ "[===      ]",
+ "[ ===     ]",
+ "[  ===    ]",
+ "[   ===   ]",
+ "[    ===  ]",
+ "[     === ]",
+ "[      ===]",
+ "[       ==]",
+ "[        =]",
+ "[       ==]",
+ "[      ===]",
+ "[     === ]",
+ "[    ===  ]",
+ "[   ===   ]",
+ "[  ===    ]",
+ "[ ===     ]",
+ "[===      ]",
+ "[==       ]"
+], 80)
 
 class KeyFile(object):
 
@@ -407,7 +429,7 @@ class CommanderIM(Commander):
             )
 
         with open(data_path, 'rb') as template_file:
-            with yaspin(Spinners.pong, text=colored("[CREATING...]", "yellow"), color="yellow") as s:
+            with yaspin(DISCOVERY_SPINNER, text=colored("[CREATING...]", "yellow"), color="yellow") as s:
                 res = requests.post(
                     self.__url_compose('infrastructures'),
                     headers=self.__headers,
@@ -449,7 +471,7 @@ class CommanderIM(Commander):
                 colored("[{}]".format(self.__target_name), "red")
             )
 
-        with yaspin(Spinners.pong, text=colored("[DELETING...]", "yellow"), color="yellow") as spinner:
+        with yaspin(DISCOVERY_SPINNER, text=colored("[DELETING...]", "yellow"), color="yellow") as spinner:
             res = requests.delete(
                 self.__url_compose("infrastructures", self.in_id),
                 headers=self.__headers
@@ -570,7 +592,7 @@ class CommanderIM(Commander):
 
         if property_ == "state" and monitor:
             try:
-                with yaspin(Spinners.pong, text=colored("Monitoring...", 'yellow'), color="yellow") as spinner:
+                with yaspin(DISCOVERY_SPINNER, text=colored("Monitoring...", 'yellow'), color="yellow") as spinner:
                     while True:
                         res = requests.get(
                             self.__url_compose(
