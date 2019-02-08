@@ -429,7 +429,7 @@ class CommanderIM(Commander):
             )
 
         with open(data_path, 'rb') as template_file:
-            with yaspin(DISCOVERY_SPINNER, text=colored("[CREATING...]", "yellow"), color="yellow") as s:
+            with yaspin(DISCOVERY_SPINNER, text=colored("[CREATING...]", "yellow"), color="yellow") as spinner:
                 res = requests.post(
                     self.__url_compose('infrastructures'),
                     headers=self.__headers,
