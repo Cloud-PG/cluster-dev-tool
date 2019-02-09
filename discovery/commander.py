@@ -771,7 +771,7 @@ class CommanderIM(Commander):
                 with open(key_filename, "w") as key_file:
                     key_file.write(pkey)
                 chmod(key_filename, 0o600)
-                command = "ssh -i {} {}@{}".format(
+                command = "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i {} {}@{}".format(
                     key_filename, user, ip
                 )
                 result = "A temporari 'tmp_p.key is written. We use the following command to connect:\n\n{}\n".format(
