@@ -601,7 +601,7 @@ class CommanderIM(Commander):
                         )
                         if res.status_code < 300:
                             obj = res.json()
-                            spinner.text = colored(" state -> {}".format(
+                            spinner.text = colored("State -> {}".format(
                                 obj['state']['state']), 'yellow')
                         sleep(5)
             except KeyboardInterrupt:
