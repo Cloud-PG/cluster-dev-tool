@@ -429,7 +429,7 @@ class CommanderIM(Commander):
             )
 
         with open(data_path, 'rb') as template_file:
-            with yaspin(DISCOVERY_SPINNER, text=colored("[CREATING...]", "yellow"), color="yellow") as spinner:
+            with yaspin(DISCOVERY_SPINNER, text=colored("Creating...", "yellow"), color="yellow") as spinner:
                 res = requests.post(
                     self.__url_compose('infrastructures'),
                     headers=self.__headers,
@@ -471,7 +471,7 @@ class CommanderIM(Commander):
                 colored("[{}]".format(self.__target_name), "red")
             )
 
-        with yaspin(DISCOVERY_SPINNER, text=colored("[DELETING...]", "yellow"), color="yellow") as spinner:
+        with yaspin(DISCOVERY_SPINNER, text=colored("Deleting...", "yellow"), color="yellow") as spinner:
             res = requests.delete(
                 self.__url_compose("infrastructures", self.in_id),
                 headers=self.__headers
@@ -601,7 +601,7 @@ class CommanderIM(Commander):
                         )
                         if res.status_code < 300:
                             obj = res.json()
-                            spinner.text = colored("[STATE]: {}".format(
+                            spinner.text = colored(" state -> {}".format(
                                 obj['state']['state']), 'yellow')
                         sleep(5)
             except KeyboardInterrupt:
