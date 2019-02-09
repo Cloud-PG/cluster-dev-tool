@@ -20,27 +20,28 @@ from .utils import (extract_in_id, filter_output, print_json_data, print_list,
                     print_right_shift, show)
 
 DISCOVERY_SPINNER = Spinner([
- "[=        ]",
- "[==       ]",
- "[===      ]",
- "[ ===     ]",
- "[  ===    ]",
- "[   ===   ]",
- "[    ===  ]",
- "[     === ]",
- "[      ===]",
- "[       ==]",
- "[        =]",
- "[       ==]",
- "[      ===]",
- "[     === ]",
- "[    ===  ]",
- "[   ===   ]",
- "[  ===    ]",
- "[ ===     ]",
- "[===      ]",
- "[==       ]"
+    "[=        ]",
+    "[==       ]",
+    "[===      ]",
+    "[ ===     ]",
+    "[  ===    ]",
+    "[   ===   ]",
+    "[    ===  ]",
+    "[     === ]",
+    "[      ===]",
+    "[       ==]",
+    "[        =]",
+    "[       ==]",
+    "[      ===]",
+    "[     === ]",
+    "[    ===  ]",
+    "[   ===   ]",
+    "[  ===    ]",
+    "[ ===     ]",
+    "[===      ]",
+    "[==       ]"
 ], 80)
+
 
 class KeyFile(object):
 
@@ -603,6 +604,21 @@ class CommanderIM(Commander):
                             obj = res.json()
                             spinner.text = colored("State -> {}".format(
                                 obj['state']['state']), 'yellow')
+                        elif res.status_code == 400:
+                            if res.text.find("OIDC auth Token expired") != -1:
+                                spinner.text = "\r"
+                                show(
+                                    colored("[Discovery]", "magenta"),
+                                    colored("[{}]".format(
+                                        self.__in_name), "white"),
+                                    colored("[{}]".format(
+                                        self.__target_name), "red"),
+                                    colored("[{}]".format(property_), "green"),
+                                    colored("[Session expired...]", "red")
+                                )
+                                return res
+                            else:
+                                self.__error(property_, res)
                         sleep(5)
             except KeyboardInterrupt:
                 spinner.text = "\r"
