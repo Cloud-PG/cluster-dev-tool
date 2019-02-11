@@ -615,9 +615,8 @@ class CommanderIM(Commander):
                                 obj['state']['state']), 'yellow')
                         elif res.status_code == 400:
                             if res.text.find("OIDC auth Token expired") != -1:
-                                spinner.text = "\r"
                                 show(
-                                    colored("[Discovery]", "magenta"),
+                                    colored(" !!! [Discovery]", "magenta"),
                                     colored("[{}]".format(
                                         self.__in_name), "white"),
                                     colored("[{}]".format(
@@ -625,7 +624,7 @@ class CommanderIM(Commander):
                                     colored("[{}]".format(property_), "green"),
                                     colored("[Session expired...]", "red")
                                 )
-                                return res
+                                exit(0)
                             else:
                                 self.__error(property_, res)
                         sleep(5)
