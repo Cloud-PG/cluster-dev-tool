@@ -591,17 +591,26 @@ class CommanderIM(Commander):
         token = self.__auth.token(force=force)
         self.__header_compose(token)
 
+        def property_request():
+            res = requests.get(
+                self.__url_compose(
+                    "infrastructures", self.in_id, property_),
+                headers=self.__headers
+            )
+
+            if res.status_code < 300 or res.status_code == 400:
+                return res
+            return False
+
         if property_ == "state" and monitor:
             try:
                 with yaspin(DISCOVERY_SPINNER, text=colored("Monitoring...", 'yellow'), color="yellow") as spinner:
-                    while True:
-                        res = requests.get(
-                            self.__url_compose(
-                                "infrastructures", self.in_id, property_),
-                            headers=self.__headers
-                        )
+                    for res in iter(property_request, False):
                         if res.status_code < 300:
                             obj = res.json()
+                            current_state = obj['state']['state']
+                            if current_state == "configured" or current_state == "unconfigured":
+                                raise KeyboardInterrupt
                             spinner.text = colored("State -> {}".format(
                                 obj['state']['state']), 'yellow')
                         elif res.status_code == 400:
