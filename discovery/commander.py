@@ -680,6 +680,7 @@ class CommanderIM(Commander):
                                 )
                                 exit(0)
                             else:
+                                spinner.stop()
                                 self.__error(property_, res)
                     except KeyboardInterrupt:
                         exit(0)
