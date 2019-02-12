@@ -12,8 +12,7 @@ import paramiko
 import requests
 from radl.radl_parse import parse_radl
 from termcolor import colored
-from yaspin import yaspin, Spinner
-
+from yaspin import Spinner, yaspin
 
 from .auth import IAM
 from .utils import (extract_in_id, filter_output, print_json_data, print_list,
@@ -288,7 +287,7 @@ class CommanderIM(Commander):
     def __select_interface(self, system, vm_number=-1):
         """Select the ip of an interface from the available interfaces.
 
-        Returns: 
+        Returns:
             str, the interface ip
         """
         # print(system)
@@ -398,8 +397,8 @@ class CommanderIM(Commander):
     def __header_compose(self, token, additional_headers={}):
         """Generate the header for IM.
 
-        Note: Every HTTP request must be companied by the header AUTHORIZATION with 
-              the content of the Authorization File, but putting all the elements in 
+        Note: Every HTTP request must be companied by the header AUTHORIZATION with
+              the content of the Authorization File, but putting all the elements in
               one line using “\n” as separator.
         """
         self.__headers = {}
@@ -626,7 +625,8 @@ class CommanderIM(Commander):
                                             self.__in_name), "white"),
                                         colored("[{}]".format(
                                             self.__target_name), "red"),
-                                        colored("[{}]".format(property_), "green"),
+                                        colored("[{}]".format(
+                                            property_), "green"),
                                         colored("[Session expired...]", "red")
                                     )
                                     exit(0)
@@ -646,18 +646,22 @@ class CommanderIM(Commander):
                     )
                     return res
             elif property_ == "contmsg":
-                spinner = yaspin(color='magenta')
+                def contmgs_handler(signum, frame, spinner):
+                    spinner.stop()
+                    exit(0)
+                spinner = yaspin(color='magenta', sigmap={signal.SIGINT: contmgs_handler})
                 spinner.start()
                 last_line = 1
                 for res in iter(property_request, False):
                     try:
                         if res.status_code < 300:
-                            result = self.__prepare_result(res, output_filter=output_filter)
+                            result = self.__prepare_result(
+                                res, output_filter=output_filter)
                             output = list(self.__colored_contmsg(result))
                             if last_line != len(output):
                                 spinner.stop()
                                 for line in range(last_line - 1, len(output)):
-                                    sleep(0.08)
+                                    sleep(0.02)
                                     print(output[line])
                                 last_line = len(output)
                                 spinner.start()
