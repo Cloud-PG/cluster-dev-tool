@@ -158,7 +158,7 @@ def main():
             property_, help='Property {} of the infrastructures'.format(property_))
         cur_parser_infrastructure_property.add_argument('--filter', metavar="filter",
                                                         type=str, choices=['ansible_errors', 'squeezed_ansible_errors', 'infrastructure_ids'], help='Filter for command {}'.format(property_))
-        if property_ == 'state':
+        if property_ == 'state' or property_ == 'contmsg':
             cur_parser_infrastructure_property.add_argument(
                 '--monitor', action="store_true", default=False, help='Monitor the state of the infrastructure')
 

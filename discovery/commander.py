@@ -509,9 +509,9 @@ class CommanderIM(Commander):
     def state(self, show_output=True, output_filter=None, monitor=False):
         return self.__property_name('state', show_output=show_output, output_filter=output_filter, monitor=monitor).json()
 
-    def contmsg(self, show_output=True, output_filter=None):
+    def contmsg(self, show_output=True, output_filter=None, monitor=False):
         self.__property_name(
-            'contmsg', show_output=show_output, output_filter=output_filter)
+            'contmsg', show_output=show_output, output_filter=output_filter, monitor=monitor)
 
     def outputs(self, show_output=True, output_filter=None):
         self.__property_name(
@@ -606,17 +606,61 @@ class CommanderIM(Commander):
                 return res
             return False
 
-        if property_ == "state" and monitor:
-            try:
-                with yaspin(DISCOVERY_SPINNER, text=colored("Monitoring...", 'yellow'), color="yellow") as spinner:
-                    for res in iter(property_request, False):
+        if monitor:
+            if property_ == "state":
+                try:
+                    with yaspin(DISCOVERY_SPINNER, text=colored("Monitoring...", 'yellow'), color="yellow") as spinner:
+                        for res in iter(property_request, False):
+                            if res.status_code < 300:
+                                obj = res.json()
+                                current_state = obj['state']['state']
+                                if current_state == "configured" or current_state == "unconfigured":
+                                    raise KeyboardInterrupt
+                                spinner.text = colored("State -> {}".format(
+                                    obj['state']['state']), 'yellow')
+                            elif res.status_code == 400:
+                                if res.text.find("OIDC auth Token expired") != -1:
+                                    show(
+                                        colored(" !!! [Discovery]", "magenta"),
+                                        colored("[{}]".format(
+                                            self.__in_name), "white"),
+                                        colored("[{}]".format(
+                                            self.__target_name), "red"),
+                                        colored("[{}]".format(property_), "green"),
+                                        colored("[Session expired...]", "red")
+                                    )
+                                    exit(0)
+                                else:
+                                    self.__error(property_, res)
+                            sleep(5)
+                except KeyboardInterrupt:
+                    spinner.text = "\r"
+                    result = self.__prepare_result(
+                        res, output_filter=output_filter)
+                    show(
+                        colored("[Discovery]", "magenta"),
+                        colored("[{}]".format(self.__in_name), "white"),
+                        colored("[{}]".format(self.__target_name), "red"),
+                        colored("[{}]".format(property_), "green"),
+                        colored("[\n{}\n]".format(result), "blue")
+                    )
+                    return res
+            elif property_ == "contmsg":
+                spinner = yaspin(color='magenta')
+                spinner.start()
+                last_line = 1
+                for res in iter(property_request, False):
+                    try:
                         if res.status_code < 300:
-                            obj = res.json()
-                            current_state = obj['state']['state']
-                            if current_state == "configured" or current_state == "unconfigured":
-                                raise KeyboardInterrupt
-                            spinner.text = colored("State -> {}".format(
-                                obj['state']['state']), 'yellow')
+                            result = self.__prepare_result(res, output_filter=output_filter)
+                            output = list(self.__colored_contmsg(result))
+                            if last_line != len(output):
+                                spinner.stop()
+                                for line in range(last_line - 1, len(output)):
+                                    sleep(0.08)
+                                    print(output[line])
+                                last_line = len(output)
+                                spinner.start()
                         elif res.status_code == 400:
                             if res.text.find("OIDC auth Token expired") != -1:
                                 show(
@@ -631,19 +675,9 @@ class CommanderIM(Commander):
                                 exit(0)
                             else:
                                 self.__error(property_, res)
-                        sleep(5)
-            except KeyboardInterrupt:
-                spinner.text = "\r"
-                result = self.__prepare_result(
-                    res, output_filter=output_filter)
-                show(
-                    colored("[Discovery]", "magenta"),
-                    colored("[{}]".format(self.__in_name), "white"),
-                    colored("[{}]".format(self.__target_name), "red"),
-                    colored("[{}]".format(property_), "green"),
-                    colored("[\n{}\n]".format(result), "blue")
-                )
-                return res
+                    except KeyboardInterrupt:
+                        exit(0)
+                    sleep(5)
 
         res = requests.get(
             self.__url_compose("infrastructures", self.in_id, property_),
