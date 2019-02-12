@@ -650,7 +650,8 @@ class CommanderIM(Commander):
                 def contmgs_handler(signum, frame, spinner):
                     spinner.stop()
                     exit(0)
-                spinner = yaspin(Spinners.shark, color='magenta', sigmap={signal.SIGINT: contmgs_handler})
+                spinner = yaspin(Spinners.shark, color='magenta', sigmap={
+                                 signal.SIGINT: contmgs_handler})
                 spinner.start()
                 last_line = 1
                 for res in iter(property_request, False):
