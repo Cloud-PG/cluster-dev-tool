@@ -13,6 +13,7 @@ import requests
 from radl.radl_parse import parse_radl
 from termcolor import colored
 from yaspin import Spinner, yaspin
+from yaspin.spinners import Spinners
 
 from .auth import IAM
 from .utils import (extract_in_id, filter_output, print_json_data, print_list,
@@ -649,7 +650,7 @@ class CommanderIM(Commander):
                 def contmgs_handler(signum, frame, spinner):
                     spinner.stop()
                     exit(0)
-                spinner = yaspin(color='magenta', sigmap={signal.SIGINT: contmgs_handler})
+                spinner = yaspin(Spinners.shark, color='magenta', sigmap={signal.SIGINT: contmgs_handler})
                 spinner.start()
                 last_line = 1
                 for res in iter(property_request, False):
