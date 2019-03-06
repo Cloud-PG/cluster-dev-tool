@@ -166,7 +166,7 @@ def main():
 
     ##
     # OUTPUT TEST - to be removed...
-    print(args)
+    # print(args)
 
     with open(args.inventory) as inventory_file:
         inventory = json.load(inventory_file)
