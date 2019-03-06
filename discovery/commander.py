@@ -12,6 +12,7 @@ import paramiko
 import requests
 from radl.radl_parse import parse_radl
 from termcolor import colored
+from toscaparser.tosca_template import ToscaTemplate
 from yaspin import Spinner, yaspin
 from yaspin.spinners import Spinners
 
@@ -430,7 +431,28 @@ class CommanderIM(Commander):
             show(
                 colored("[Discovery]", "magenta"),
                 colored("[{}]".format(self.__in_name), "white"),
-                colored("[{}]".format(self.__target_name), "red")
+                colored("[{}]".format(self.__target_name), "red"),
+                end="\r"
+            )
+
+        # Check Tosca template
+        if show_output:
+            show(
+                colored("[Discovery]", "magenta"),
+                colored("[{}]".format(self.__in_name), "white"),
+                colored("[{}]".format(self.__target_name), "red"),
+                colored("[Check TOSCA template]", "yellow"),
+                end="\r"
+            )
+
+        _ = ToscaTemplate(data_path, a_file=True)
+
+        if show_output:
+            show(
+                colored("[Discovery]", "magenta"),
+                colored("[{}]".format(self.__in_name), "white"),
+                colored("[{}]".format(self.__target_name), "red"),
+                colored("[Check TOSCA template]", "green")
             )
 
         with open(data_path, 'rb') as template_file:

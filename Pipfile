@@ -12,6 +12,7 @@ radl = "*"
 paramiko = "*"
 pygments = "*"
 yaspin = "*"
+tosca-parser = "*"
 
 [dev-packages]
 "autopep8" = "*"
