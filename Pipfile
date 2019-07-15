@@ -17,6 +17,7 @@ tosca-parser = "*"
 [dev-packages]
 "autopep8" = "*"
 pylint = "*"
+pylama = "*"
 
 [requires]
 python_version = "3"
