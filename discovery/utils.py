@@ -21,7 +21,8 @@ def print_list(list_):
 
 
 def print_json_data(data, indent=2):
-    return highlight(json.dumps(data, indent=indent), JsonLexer(), TerminalFormatter())
+    return highlight(json.dumps(data, indent=indent), JsonLexer(),
+                     TerminalFormatter())
 
 
 def print_right_shift(string, n=2):
@@ -42,7 +43,8 @@ def extract_in_id(url):
     return url.split("/")[-1].strip()
 
 
-def filter_output(text, filter_type, max_error_lines=8, max_lenght_error_line=1024):
+def filter_output(text, filter_type, max_error_lines=8,
+                  max_lenght_error_line=1024):
     if filter_type.find("ansible_errors") != -1:
         squeeze = False
         if filter_type == "squeezed_ansible_errors":

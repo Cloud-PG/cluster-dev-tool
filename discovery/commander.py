@@ -1,4 +1,3 @@
-import configparser
 import json
 import signal
 import socket
@@ -17,7 +16,7 @@ from yaspin import Spinner, yaspin
 from yaspin.spinners import Spinners
 
 from .auth import IAM
-from .utils import (extract_in_id, filter_output, print_json_data, print_list,
+from .utils import (extract_in_id, filter_output, print_json_data,
                     print_right_shift, show)
 
 DISCOVERY_SPINNER = Spinner([
@@ -72,7 +71,8 @@ class KeyFile(object):
 
 class SSHHandler(object):
 
-    def __init__(self, ip, username, password=None, public_key=None, private_key=None):
+    def __init__(self, ip, username, password=None, public_key=None,
+                 private_key=None):
         self.__ip = ip
         self.__username = username
         self.__password = password
@@ -136,7 +136,8 @@ class SSHHandler(object):
 
         return buffer.decode("utf-8")
 
-    def jump(self, ip, username, password=None, public_key=None, private_key=None):
+    def jump(self, ip, username, password=None, public_key=None,
+             private_key=None):
         if self.__channel is None:
             self.__channel = self.__ssh.invoke_shell()
         if password:
@@ -231,7 +232,8 @@ class Commander(metaclass=ABCMeta):
     def state(self, show_output=True, output_filter=None):
         """A JSON object with two elements:
             - state: a string with the aggregated state of the infrastructure.
-            - vm_states: a dict indexed with the VM ID and the value the VM state.
+            - vm_states: a dict indexed with the VM ID and the value the
+              VM state.
         """
         pass
 
@@ -242,7 +244,8 @@ class Commander(metaclass=ABCMeta):
 
     @abstractmethod
     def outputs(self, show_output=True, output_filter=None):
-        """In case of TOSCA documents it will return a JSON object with the outputs of the TOSCA document."""
+        """In case of TOSCA documents it will return a JSON object with the
+           outputs of the TOSCA document."""
         pass
 
     @abstractmethod
@@ -252,12 +255,14 @@ class Commander(metaclass=ABCMeta):
 
     @abstractmethod
     def info(self, show_output=True, output_filter=None):
-        """Return info about the virtual machines associated to the infrastructure."""
+        """Return info about the virtual machines associated to the
+           infrastructure."""
         pass
 
     @abstractmethod
     def vm(self, id_, show_output=True):
-        """Return info about the specific virtual machine associated to the infrastructure."""
+        """Return info about the specific virtual machine associated to the
+           infrastructure."""
         pass
 
 
@@ -268,7 +273,8 @@ class CommanderIM(Commander):
     Ref: http://imdocs.readthedocs.io/en/devel/REST.html
     """
 
-    def __init__(self, config, target_name, infrastructure_name, infrastructure_id=None):
+    def __init__(self, config, target_name, infrastructure_name,
+                 infrastructure_id=None):
         self.__server_url = config['server_url'].strip()
         if self.__server_url[-1] == "/":
             self.__server_ur = self.__server_ur[:-1]
@@ -399,9 +405,9 @@ class CommanderIM(Commander):
     def __header_compose(self, token, additional_headers={}):
         """Generate the header for IM.
 
-        Note: Every HTTP request must be companied by the header AUTHORIZATION with
-              the content of the Authorization File, but putting all the elements in
-              one line using “\n” as separator.
+        Note: Every HTTP request must be companied by the header AUTHORIZATION
+              with the content of the Authorization File, but putting all
+              the elements in one line using “\n” as separator.
         """
         self.__headers = {}
 
@@ -456,7 +462,8 @@ class CommanderIM(Commander):
             )
 
         with open(data_path, 'rb') as template_file:
-            with yaspin(DISCOVERY_SPINNER, text=colored("Creating...", "yellow"), color="yellow") as spinner:
+            with yaspin(DISCOVERY_SPINNER, text=colored(
+                    "Creating...", "yellow"), color="yellow") as spinner:
                 res = requests.post(
                     self.__url_compose('infrastructures'),
                     headers=self.__headers,
@@ -498,7 +505,8 @@ class CommanderIM(Commander):
                 colored("[{}]".format(self.__target_name), "red")
             )
 
-        with yaspin(DISCOVERY_SPINNER, text=colored("Deleting...", "yellow"), color="yellow") as spinner:
+        with yaspin(DISCOVERY_SPINNER, text=colored(
+                "Deleting...", "yellow"), color="yellow") as spinner:
             res = requests.delete(
                 self.__url_compose("infrastructures", self.in_id),
                 headers=self.__headers
@@ -529,11 +537,14 @@ class CommanderIM(Commander):
                              output_filter=output_filter)
 
     def state(self, show_output=True, output_filter=None, monitor=False):
-        return self.__property_name('state', show_output=show_output, output_filter=output_filter, monitor=monitor).json()
+        return self.__property_name(
+            'state', show_output=show_output,
+            output_filter=output_filter, monitor=monitor).json()
 
     def contmsg(self, show_output=True, output_filter=None, monitor=False):
         self.__property_name(
-            'contmsg', show_output=show_output, output_filter=output_filter, monitor=monitor)
+            'contmsg', show_output=show_output,
+            output_filter=output_filter, monitor=monitor)
 
     def outputs(self, show_output=True, output_filter=None):
         self.__property_name(
@@ -543,7 +554,8 @@ class CommanderIM(Commander):
         self.__property_name('data', show_output=show_output,
                              output_filter=output_filter)
 
-    def __prepare_result(self, res, output_filter=None, get_content=False, shift=True):
+    def __prepare_result(self, res, output_filter=None, get_content=False,
+                         shift=True):
         try:
             content = res.json()
         except json.decoder.JSONDecodeError:
@@ -600,7 +612,8 @@ class CommanderIM(Commander):
                 head = colored("{}: ".format(head), "red",
                                attrs=["bold", "underline"])
                 info, err = content.split("=>")
-                yield head + info + "=>" + print_json_data(json.loads(err), indent=4)
+                yield head + info + "=>" + print_json_data(
+                    json.loads(err), indent=4)
             elif line.find("PLAY [") != -1:
                 yield colored(line, 'white', attrs=["bold", "underline"])
             elif line.find("PLAY RECAP") != -1:
@@ -608,7 +621,8 @@ class CommanderIM(Commander):
             else:
                 yield line
 
-    def __property_name(self, property_, force=False, show_output=True, output_filter=None, monitor=False):
+    def __property_name(self, property_, force=False, show_output=True,
+                        output_filter=None, monitor=False):
         """Get the infrastructure state.
 
         API REST:
@@ -803,7 +817,8 @@ class CommanderIM(Commander):
                 colored("[\n{}\n]".format(result), "blue")
             )
 
-    def vm(self, id_, property_=None, export_credentials=False, show_output=True):
+    def vm(self, id_, property_=None, export_credentials=False,
+           show_output=True):
         """Get information about the selected vm in the current infrastructure.
 
         Print vm info and return radl object.

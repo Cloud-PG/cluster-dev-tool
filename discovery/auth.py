@@ -72,7 +72,7 @@ class IAM(Auth):
                     colored("[Discovery]", "magenta"),
                     colored("[IAM]", "white"),
                     colored("[Load Config]", "yellow"),
-                    colored("[Set '{}'\t-> '{}']".format(key, value), "yellow"),
+                    colored(f"[Set '{key}'\t-> '{value}']", "yellow"),
                     end="\r"
                 )
                 setattr(self, key, value)

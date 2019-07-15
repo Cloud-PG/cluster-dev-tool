@@ -20,7 +20,8 @@ def get_context(target, infrastructure, commanders):
         commander_cfg = commanders[infrastructure['commander']]
         if commander_cfg['type'] == 'IM':
             context = CommanderIM(
-                commander_cfg, target, infrastructure['commander'], infrastructure['id'])
+                commander_cfg, target, infrastructure['commander'],
+                infrastructure['id'])
             show(
                 colored("[Discovery]", "magenta"),
                 colored("[{}]".format(infrastructure['commander']), "white"),
@@ -30,8 +31,9 @@ def get_context(target, infrastructure, commanders):
             )
             return context
     else:
-        raise Exception("Commander '{}' not available in the inventory...".format(
-            infrastructure['commander']))
+        raise Exception(
+            f"Commander '{infrastructure['commander']}' not available in the inventory..."
+        )
 
 
 def show_commander(target, commanders):
@@ -82,7 +84,8 @@ def main():
     ##
     # discovery inventory
     parser.add_argument('inventory', metavar="filename",
-                        default=None, help='Configuration of infrastuctures and entrypoints')
+                        default=None,
+                        help='Configuration of infrastuctures and entrypoints')
 
     ##
     # discovery inventory sub_command
@@ -102,14 +105,16 @@ def main():
         dest="sub_command_commander")
     # infrastructures
     parser_infrastructure_info = sub_parser_commander.add_parser(
-        'infrastructures', help='Get info about the infrastructures managed by this commander')
+        'infrastructures',
+        help='Get info about the infrastructures managed by this commander')
 
     # sub command [infrastructure]
     parser_infrastructure = subparsers.add_parser(
         'infrastructure', help='Explore inventory infrastructure')
     parser_infrastructure.add_argument(
         'infrastructure_target', metavar="target", default="None",
-        type=str, help='Target infrastructures. It\'s the name given to that infrastructure.')
+        type=str,
+        help='Target infrastructures. It\'s the name given to that infrastructure.')
     sub_parser_infrastructure = parser_infrastructure.add_subparsers(
         dest="sub_command_infrastructure")
     # info
@@ -126,7 +131,8 @@ def main():
         'create', help='Create an new infrastructures')
     parser_infrastructure_create.add_argument(
         'parser_infrastructure_create_target_data_path', metavar="data_path",
-        type=arghelper.extant_file, help='The template to use. This have to be an existing file.')
+        type=arghelper.extant_file,
+        help='The template to use. This have to be an existing file.')
     parser_infrastructure_create.add_argument(
         'parser_infrastructure_create_target_commander', metavar="commander",
         type=str, help='The name of the commander to use.')
@@ -138,16 +144,19 @@ def main():
         type=int, help='Number of vm to be inspected.')
     parser_infrastructure_vm.add_argument(
         '--vm-property', metavar="vm_property_name", default='None',
-        type=str, choices=['contmsg', 'pkey', 'user'], help='Get a specific property of the selected vm.')
+        type=str, choices=['contmsg', 'pkey', 'user'],
+        help='Get a specific property of the selected vm.')
     parser_infrastructure_vm.add_argument(
-        '--export-credentials', default=False, action="store_true", help='Export credentials of the selected vm.')
+        '--export-credentials', default=False, action="store_true",
+        help='Export credentials of the selected vm.')
 
     # ssh
     parser_infrastructure_ssh = sub_parser_infrastructure.add_parser(
         'ssh', help='Use ssh commands')
     parser_infrastructure_ssh.add_argument(
         'parser_infrastructure_ssh_mode', metavar="connection_mode",
-        type=str, help='How do you want to connect to the vm. Possible values are: "direct", "bastion", "vm_number".')
+        type=str,
+        help='How do you want to connect to the vm. Possible values are: "direct", "bastion", "vm_number".')
     parser_infrastructure_ssh.add_argument(
         'parser_infrastructure_ssh_vm_number', metavar="vm_number",
         type=int, help='Number of vm to be invoked.')
@@ -155,12 +164,18 @@ def main():
     # sub command [radl, state, contmsg, outputs, data]
     for property_ in ["radl", "state", "contmsg", "outputs", "data"]:
         cur_parser_infrastructure_property = sub_parser_infrastructure.add_parser(
-            property_, help='Property {} of the infrastructures'.format(property_))
-        cur_parser_infrastructure_property.add_argument('--filter', metavar="filter",
-                                                        type=str, choices=['ansible_errors', 'squeezed_ansible_errors', 'infrastructure_ids'], help='Filter for command {}'.format(property_))
+            property_, help=f'Property {property_} of the infrastructures')
+        cur_parser_infrastructure_property.add_argument(
+            '--filter', metavar="filter", type=str, choices=[
+                'ansible_errors',
+                'squeezed_ansible_errors',
+                'infrastructure_ids'
+            ],
+            help=f'Filter for command {property_}')
         if property_ == 'state' or property_ == 'contmsg':
             cur_parser_infrastructure_property.add_argument(
-                '--monitor', action="store_true", default=False, help='Monitor the state of the infrastructure')
+                '--monitor', action="store_true", default=False,
+                help='Monitor the state of the infrastructure')
 
     args, _ = parser.parse_known_args()
 
@@ -243,10 +258,12 @@ def main():
             elif cur_target in inventory['infrastructures']:
                 if args.sub_command_infrastructure in ['info', 'radl', 'state', 'contmsg', 'outputs', 'data', 'reconfigure', 'vm']:
                     ctx = get_context(
-                        cur_target, inventory['infrastructures'][cur_target], inventory['commanders'])
+                        cur_target, inventory['infrastructures'][cur_target],
+                        inventory['commanders'])
                     method_to_call = getattr(
                         ctx, args.sub_command_infrastructure)
-                    if 'filter' in args and args.filter is not None:  # for 'radl', 'state', 'contmsg', 'outputs', 'data' commands
+                    # for 'radl', 'state', 'contmsg', 'outputs', 'data' commands
+                    if 'filter' in args and args.filter is not None:
                         method_to_call(output_filter=args.filter)
                     elif 'monitor' in args and args.monitor is True:
                         method_to_call(monitor=True)
